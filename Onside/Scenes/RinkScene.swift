@@ -8,7 +8,39 @@
 import SpriteKit
 
 class RinkScene: SKScene, UIGestureRecognizerDelegate {
+    var config: RinkConfiguration = .standard
+    weak var dataSource: PlayerDataSource?
+    private var playerSprites: [UInt8: SKShapeNode] = [:]
+    private var lastTime: TimeInterval = 0
+
     var cameraNode = SKCameraNode()
+    
+    override func update(_ currentTime: TimeInterval) {
+        let deltaTime = lastTime == 0 ? 0 : currentTime - lastTime
+        lastTime = currentTime
+
+        guard let players = dataSource?.players else { return }
+
+        let smoothing = CGFloat(1.0 - pow(0.01, deltaTime))
+        for (id, pos) in players {
+            let target = CGPoint(x: pos.x, y: pos.y)
+            if let sprite = playerSprites[id] {
+                sprite.position = lerp(from: sprite.position, to: target, t: smoothing)
+            } else {
+                let sprite = SKShapeNode(circleOfRadius: 2)
+                sprite.fillColor = .red
+                sprite.strokeColor = .clear
+                sprite.position = target
+                addChild(sprite)
+                playerSprites[id] = sprite
+            }
+        }
+    }
+
+    private func lerp(from: CGPoint, to: CGPoint, t: CGFloat) -> CGPoint {
+        CGPoint(x: from.x + (to.x - from.x) * t,
+                y: from.y + (to.y - from.y) * t)
+    }
     
     override func didMove(to view: SKView) {
         let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
