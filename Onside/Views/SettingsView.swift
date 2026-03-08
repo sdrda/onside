@@ -9,6 +9,13 @@ import SwiftUI
 
 struct SettingsView: View {
     var body: some View {
-        NavigationTit
+        NavigationStack {
+            List {
+                NavigationLink(destination: ConnectedPlayersView()) {
+                    Label("Connected Players", systemImage: "person.2.fill")
+                }
+            }
+            .navigationTitle("Settings")
+        }
     }
 }

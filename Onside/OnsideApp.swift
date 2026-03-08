@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct OnsideApp: App {
@@ -13,5 +14,6 @@ struct OnsideApp: App {
         WindowGroup {
             ContentView()
         }
+        .modelContainer(for: ConnectedPlayerModel.self)
     }
 }
