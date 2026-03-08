@@ -6,15 +6,64 @@
 //
 
 import SpriteKit
+import UIKit
 
 class RinkScene: SKScene, UIGestureRecognizerDelegate {
     var config: RinkConfiguration = .standard
     weak var dataSource: PlayerDataSource?
     private var playerSprites: [UInt8: SKShapeNode] = [:]
     private var lastTime: TimeInterval = 0
+    private var backgroundNode: SKSpriteNode?
 
     var cameraNode = SKCameraNode()
-    
+
+    // MARK: - Lifecycle
+
+    override func didMove(to view: SKView) {
+        if backgroundNode == nil {
+            setupRink()
+            setupCamera()
+        }
+        setupGestures(in: view)
+    }
+
+    // MARK: - Setup
+
+    private func setupRink() {
+        backgroundColor = config.iceColor
+
+        let image = RinkRenderer(config: config).render(size: size)
+        let node = SKSpriteNode(texture: SKTexture(image: image), size: size)
+        node.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        node.zPosition = -1
+        addChild(node)
+        backgroundNode = node
+    }
+
+    private func setupCamera() {
+        addChild(cameraNode)
+        camera = cameraNode
+        cameraNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        cameraNode.setScale(0.5)
+    }
+
+    private func setupGestures(in view: SKView) {
+        // Zabráníme přidání duplicitních gesture recognizerů
+        let existingTypes = view.gestureRecognizers?.map { type(of: $0) } ?? []
+        if !existingTypes.contains(where: { $0 == UIPanGestureRecognizer.self }) {
+            let pan = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
+            pan.delegate = self
+            view.addGestureRecognizer(pan)
+        }
+        if !existingTypes.contains(where: { $0 == UIPinchGestureRecognizer.self }) {
+            let pinch = UIPinchGestureRecognizer(target: self, action: #selector(handlePinch(_:)))
+            pinch.delegate = self
+            view.addGestureRecognizer(pinch)
+        }
+    }
+
+    // MARK: - Herní smyčka
+
     override func update(_ currentTime: TimeInterval) {
         let deltaTime = lastTime == 0 ? 0 : currentTime - lastTime
         lastTime = currentTime
@@ -23,7 +72,7 @@ class RinkScene: SKScene, UIGestureRecognizerDelegate {
 
         let smoothing = CGFloat(1.0 - pow(0.01, deltaTime))
         for (id, pos) in players {
-            let target = CGPoint(x: pos.x, y: pos.y)
+            let target = config.toScene(point: CGPoint(x: pos.x, y: pos.y), sceneSize: size)
             if let sprite = playerSprites[id] {
                 sprite.position = lerp(from: sprite.position, to: target, t: smoothing)
             } else {
@@ -41,76 +90,28 @@ class RinkScene: SKScene, UIGestureRecognizerDelegate {
         CGPoint(x: from.x + (to.x - from.x) * t,
                 y: from.y + (to.y - from.y) * t)
     }
-    
-    override func didMove(to view: SKView) {
-        let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
-        panGesture.delegate = self
-        view.addGestureRecognizer(panGesture)
-        
-        let pinchGesture = UIPinchGestureRecognizer(target: self, action: #selector(handlePinch(_:)))
-        pinchGesture.delegate = self
-        view.addGestureRecognizer(pinchGesture)
-    }
-    
-    override func sceneDidLoad() {
-        super.sceneDidLoad()
-        
-        // Set up the camera
-        camera = cameraNode
-        camera?.position = CGPoint(x: size.width / 2, y: size.height / 2)
-        camera?.setScale(0.4)
-        
-        backgroundColor = .white
-        
-        // Set up provisional rink
-        let square = SKShapeNode(rectOf: CGSize(width: 200, height: 100))
-        square.strokeColor = .black
-        square.position = CGPoint(x: size.width / 2, y: size.height / 2)
-        
-        let label = SKLabelNode(text: "Rink")
-        label.fontColor = .black
-        label.fontSize = 14
-        label.verticalAlignmentMode = .center
-        
-        square.addChild(label)
-        addChild(square)
-    }
-    
-    /// Function for handling pan (camera movement)
-    /// Must be an Objective-C function due to UIKit requirements
+
+    // MARK: - Gesta (pan + pinch)
+
     @objc func handlePan(_ sender: UIPanGestureRecognizer) {
-        guard let view = self.view else { return }
-            
-        if sender.state == .changed {
-            let translation = sender.translation(in: view)
-                
-            // Get the current camera scale
-            let currentZoom = cameraNode.xScale
-                
-            // Move the camera accounting for the current zoom level
-            cameraNode.position = CGPoint(
-                x: cameraNode.position.x - (translation.x * currentZoom),
-                y: cameraNode.position.y + (translation.y * currentZoom)
-            )
-                
-            sender.setTranslation(.zero, in: view)
-        }
+        guard sender.state == .changed, let view = self.view else { return }
+        let translation = sender.translation(in: view)
+        let zoom = cameraNode.xScale
+        cameraNode.position = CGPoint(
+            x: cameraNode.position.x - translation.x * zoom,
+            y: cameraNode.position.y + translation.y * zoom
+        )
+        sender.setTranslation(.zero, in: view)
     }
-    
-    /// Function for handling pinch (zoom)
+
     @objc func handlePinch(_ sender: UIPinchGestureRecognizer) {
-        if sender.state == .changed {
-            let newScale = cameraNode.xScale * (1.0 / sender.scale)
-            
-            cameraNode.setScale(newScale)
-            
-            // Reset the gesture scale
-            sender.scale = 1.0
-        }
+        guard sender.state == .changed else { return }
+        cameraNode.setScale(cameraNode.xScale / sender.scale)
+        sender.scale = 1.0
     }
-    
-    /// Allow simultaneous UIGestureRecognizer recognition
-    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
-        return true
-    }
+
+    func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
+    ) -> Bool { true }
 }
