@@ -54,7 +54,7 @@ struct PlayerListOverlay: View {
                     Circle()
                         .fill(.red)
                         .frame(width: 8, height: 8)
-                    Text("\(displayName(for: player.id))  \(player.speed, specifier: "%.1f") j/s")
+                    Text("\(displayName(for: player.id))  \(player.speed, specifier: "%.1f") m/s")
                         .font(.caption)
                         .foregroundStyle(.white)
                 }
