@@ -10,7 +10,15 @@ import SpriteKit
 
 struct ContentView: View {
     var body: some View {
-        RinkView()
+        TabView {
+            Tab("Rink", systemImage: "hockey.puck") {
+                RinkView()
+            }
+
+            Tab("Settings", systemImage: "gearshape") {
+                SettingsView()
+            }
+        }
     }
 }
 
