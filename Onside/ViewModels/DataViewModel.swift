@@ -70,7 +70,7 @@ final class DataViewModel: PlayerDataSource {
             let dy = CGFloat(y) - prev.y
             let rawSpeed = sqrt(dx * dx + dy * dy) / CGFloat(dt)
             
-            let alpha: CGFloat = 0.2  // 0.1 = více vyhlazené, 0.5 = více reaktivní
+            let alpha: CGFloat = 0.1  // 0.1 = více vyhlazené, 0.5 = více reaktivní
             let prev = smoothedSpeeds[playerId, default: rawSpeed]
             speed = alpha * rawSpeed + (1 - alpha) * prev
         } else {
