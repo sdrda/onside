@@ -8,14 +8,6 @@
 import Foundation
 import SwiftUI
 
-struct PlayerPosition: Identifiable, Codable, Equatable {
-    let id: UInt8
-    let x: CGFloat
-    let y: CGFloat
-    let speed: CGFloat
-    let timestamp: Date
-}
-
 @Observable
 @MainActor
 final class DataViewModel: PlayerDataSource {
@@ -36,6 +28,7 @@ final class DataViewModel: PlayerDataSource {
             for await packet in stream {
                 guard !Task.isCancelled else { break }
                 let pos = transformToPlayerPosition(packet: packet)
+                PhoneSessionManager.shared.sendPlayerData(Array(players.values))
                 players[pos.id] = pos
             }
             isConnected = false

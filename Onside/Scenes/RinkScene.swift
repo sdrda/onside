@@ -76,7 +76,7 @@ class RinkScene: SKScene, UIGestureRecognizerDelegate {
             if let sprite = playerSprites[id] {
                 sprite.position = lerp(from: sprite.position, to: target, t: smoothing)
             } else {
-                let sprite = SKShapeNode(circleOfRadius: 2)
+                let sprite = SKShapeNode(circleOfRadius: 10)
                 sprite.fillColor = .red
                 sprite.strokeColor = .clear
                 sprite.position = target
