@@ -6,19 +6,18 @@
 //
 
 import SwiftUI
-import SpriteKit
 
 struct ContentView: View {
+    @State private var viewModel = DataViewModel()
+    
     var body: some View {
-        TabView {
-            Tab("Rink", systemImage: "hockey.puck") {
-                RinkView()
+        RealityRinkView(viewModel: viewModel)
+            .onAppear {
+                viewModel.start()
             }
-
-            Tab("Settings", systemImage: "gearshape") {
-                SettingsView()
+            .onDisappear {
+                viewModel.stop()
             }
-        }
     }
 }
 

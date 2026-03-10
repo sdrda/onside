@@ -117,22 +117,4 @@ struct RinkConfiguration {
     // MARK: - Výchozí konfigurace (IIHF standard)
 
     static let standard = RinkConfiguration()
-
-    // MARK: - Souřadnicový přepočet
-
-    /// Převede bod hráče (v metrech od středu kluziště, +x vpravo, +y nahoru)
-    /// na souřadnice SpriteKit scény (počátek vlevo dole, y roste nahoru).
-    func toScene(point: CGPoint, sceneSize: CGSize) -> CGPoint {
-        if sceneSize.height > sceneSize.width {
-            return CGPoint(
-                x: (point.y + height / 2) / height * sceneSize.width,
-                y: (point.x + width  / 2) / width  * sceneSize.height
-            )
-        } else {
-            return CGPoint(
-                x: (point.x + width  / 2) / width  * sceneSize.width,
-                y: (point.y + height / 2) / height * sceneSize.height
-            )
-        }
-    }
 }
