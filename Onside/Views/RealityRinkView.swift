@@ -8,6 +8,12 @@
 import SwiftUI
 import RealityKit
 
+final class PlayerPositionBridge {
+    static let shared = PlayerPositionBridge()
+    private init() {}
+    nonisolated(unsafe) var positions: [UInt8: SIMD3<Float>] = [:]
+}
+
 struct PlayerComponent: Component {
     var targetPosition: SIMD3<Float>
     var playerID: UInt8
@@ -15,22 +21,20 @@ struct PlayerComponent: Component {
 
 class PlayerMovementSystem: System {
     private static let query = EntityQuery(where: .has(PlayerComponent.self))
-    
+
     required init(scene: RealityKit.Scene) {}
-    
+
     func update(context: SceneUpdateContext) {
-        let deltaTime = Float(context.deltaTime)
-        
+        let positions = PlayerPositionBridge.shared.positions
+        let t = SIMD3<Float>(repeating: min(1.0, 10.0 * Float(context.deltaTime)))
+
         for entity in context.scene.performQuery(Self.query) {
-            guard let playerComp = entity.components[PlayerComponent.self] else { continue }
-            
-            let currentPosition = entity.position
-            let targetPosition = playerComp.targetPosition
-            
-            // Plynulé "dojíždění" k cíli pomocí LERP
-            let newPosition = simd_mix(currentPosition, targetPosition, SIMD3<Float>(repeating: min(1.0, 10.0 * deltaTime)))
-            
-            entity.position = newPosition
+            guard var comp = entity.components[PlayerComponent.self] else { continue }
+            if let pos = positions[comp.playerID] {
+                comp.targetPosition = pos
+                entity.components.set(comp)
+            }
+            entity.position = simd_mix(entity.position, comp.targetPosition, t)
         }
     }
 }
@@ -58,7 +62,6 @@ struct RealityRinkView: View {
                     content.camera = .spatialTracking
                     #endif
                     
-                    // Kotva, která hledá vodorovnou plochu
                     let anchor = AnchorEntity(.plane(.horizontal, classification: .any, minimumBounds: [0.5, 0.5]))
                     let rinkEntity = createRinkEntity()
                     
@@ -66,71 +69,52 @@ struct RealityRinkView: View {
                     content.add(anchor)
                     
                 } update: { content in
-                    // Hledání hřiště pod kotvou
-                    var rinkEntity: Entity? = nil
-                    for entity in content.entities {
-                        if entity.name == "RinkPlane" { rinkEntity = entity; break }
-                        if let child = entity.children.first(where: { $0.name == "RinkPlane" }) { rinkEntity = child; break }
-                    }
-                    
-                    if let rink = rinkEntity {
-                        updatePlayers(on: rink)
-                    }
+                    let ids = viewModel.playerIDs
+                    guard let rink = findRink(in: content.entities) else { return }
+                    syncPlayers(ids: ids, on: rink)
                 }
-                
+
             } else {
                 RealityView { content in
                     content.camera = .virtual
-                    
                     let rinkEntity = createRinkEntity()
                     content.add(rinkEntity)
-                    
+
                 } update: { content in
-                    // Hledání hřiště ve virtuálním prostoru
-                    var rinkEntity: Entity? = nil
-                    for entity in content.entities {
-                        if entity.name == "RinkPlane" { rinkEntity = entity; break }
-                        if let child = entity.children.first(where: { $0.name == "RinkPlane" }) { rinkEntity = child; break }
-                    }
-                    
-                    if let rink = rinkEntity {
-                        updatePlayers(on: rink)
-                    }
+                    let ids = viewModel.playerIDs
+                    guard let rink = findRink(in: content.entities) else { return }
+                    syncPlayers(ids: ids, on: rink)
                 }
                 .realityViewCameraControls(.orbit)
             }
         }
     }
     
-    // MARK: - Společná logika pro pohyb a tvorbu hráčů
-    private func updatePlayers(on rink: Entity) {
-        for player in viewModel.players.values {
-            // Převod fyzických dat (střed hřiště = 0,0) na metry v RealityKit
-            let scale: Float = 0.01
-            let targetX = Float(player.x) * scale
-            let targetZ = Float(player.y) * scale
-            let targetPos: SIMD3<Float> = [targetX, 0, targetZ]
-            
-            // Unikátní jméno pro vyhledání v RealityKitu
-            let playerName = "player_\(player.id)"
-            
-            if let existingEntity = rink.findEntity(named: playerName) {
-                // Hráč už existuje
-                // Jen zaktualizujeme jeho cíl v komponentě
-                
-                var comp = existingEntity.components[PlayerComponent.self]!
-                comp.targetPosition = targetPos
-                existingEntity.components.set(comp)
-                
-            } else {
-                // Hráč neexistuje
-                // Vytvoříme ho a přidáme přímo na hřiště
-                let newEntity = createPlayerEntity(data: player, startPos: targetPos)
-                
-                // Nastavíme jméno hráče pro příští vyhledání
-                newEntity.name = playerName
-                
-                rink.addChild(newEntity)
+    // MARK: - Pomocné funkce
+
+    private func findRink(in entities: some Sequence<Entity>) -> Entity? {
+        for entity in entities {
+            if entity.name == "RinkPlane" { return entity }
+            if let child = entity.children.first(where: { $0.name == "RinkPlane" }) { return child }
+        }
+        return nil
+    }
+
+    // Volá se jen při změně playerIDs – přidá nové, odstraní zaniklé entity
+    private func syncPlayers(ids: Set<UInt8>, on rink: Entity) {
+        // Přidat chybějící
+        for playerID in ids {
+            let playerName = "player_\(playerID)"
+            guard rink.findEntity(named: playerName) == nil else { continue }
+            let startPos = PlayerPositionBridge.shared.positions[playerID] ?? .zero
+            let newEntity = createPlayerEntity(id: playerID, startPos: startPos)
+            newEntity.name = playerName
+            rink.addChild(newEntity)
+        }
+        // Odstranit zaniklé
+        for child in rink.children where child.name.hasPrefix("player_") {
+            if let id = UInt8(child.name.dropFirst("player_".count)), !ids.contains(id) {
+                child.removeFromParent()
             }
         }
     }
@@ -158,22 +142,12 @@ struct RealityRinkView: View {
         return entity
     }
     
-    private func createPlayerEntity(data: PlayerPosition, startPos: SIMD3<Float>) -> Entity {
-        // Zmenšené válce, aby proporčně seděly na menší kluziště
+    private func createPlayerEntity(id: UInt8, startPos: SIMD3<Float>) -> Entity {
         let mesh = MeshResource.generateCylinder(height: 0.02, radius: 0.008)
         let material = SimpleMaterial(color: .red, isMetallic: false)
         let entity = ModelEntity(mesh: mesh, materials: [material])
-        
         entity.position = startPos
-        
-        // Přidání komponenty, aby ho systém okamžitě zaregistroval a posouval
-        let comp = PlayerComponent(targetPosition: startPos, playerID: data.id)
-        entity.components.set(comp)
-        
+        entity.components.set(PlayerComponent(targetPosition: startPos, playerID: id))
         return entity
     }
-}
-
-#Preview {
-    RealityRinkView(viewModel: DataViewModel())
 }

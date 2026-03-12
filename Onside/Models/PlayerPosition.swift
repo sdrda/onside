@@ -11,6 +11,5 @@ struct PlayerPosition: Identifiable, Codable, Equatable {
     let id: UInt8
     let x: CGFloat
     let y: CGFloat
-    let speed: CGFloat
     let timestamp: Date
 }

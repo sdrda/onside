@@ -11,16 +11,24 @@ import SwiftUI
 @Observable
 @MainActor
 final class DataViewModel: PlayerDataSource {
-    private(set) var players: [UInt8: PlayerPosition] = [:]
+    private(set) var playerIDs: Set<UInt8> = []
     private(set) var isConnected = false
+    private(set) var isRecording = false
+    private(set) var recordedCount = 0
     
+    @ObservationIgnored
+    private(set) var recordingBuffer: [PlayerPosition] = []
+    
+    @ObservationIgnored
+    private(set) var players: [UInt8: PlayerPosition] = [:]
+
     private let receiver: UDPReceiver
     private var task: Task<Void, Never>?
-    
+
     init() {
         self.receiver = UDPReceiver(port: 9000)
     }
-    
+
     func start() {
         isConnected = true
         task = Task {
@@ -28,49 +36,51 @@ final class DataViewModel: PlayerDataSource {
             for await packet in stream {
                 guard !Task.isCancelled else { break }
                 let pos = transformToPlayerPosition(packet: packet)
-                PhoneSessionManager.shared.sendPlayerData(Array(players.values))
                 players[pos.id] = pos
+
+                let scale: Float = 0.01
+                PlayerPositionBridge.shared.positions[pos.id] = [Float(pos.x) * scale, 0, Float(pos.y) * scale]
+
+                if !playerIDs.contains(pos.id) { playerIDs.insert(pos.id) }
+
+                if isRecording {
+                    recordingBuffer.append(pos)
+                    recordedCount += 1
+                }
             }
             isConnected = false
         }
     }
-    
+
     func stop() {
         task?.cancel()
         Task { await receiver.stop() }
         isConnected = false
+        playerIDs = []
+        players = [:]
+        PlayerPositionBridge.shared.positions = [:]
     }
-    
-    private var smoothedSpeeds: [UInt8: CGFloat] = [:]
+
+    func startRecording() {
+        recordingBuffer = []
+        recordedCount = 0
+        isRecording = true
+    }
+
+    func stopRecording() {
+        isRecording = false
+    }
 
     private func transformToPlayerPosition(packet: UDPPacket) -> PlayerPosition {
         let data = packet.rawBytes
         guard data.count >= 17 else {
-            return PlayerPosition(id: 0, x: 0, y: 0, speed: 0, timestamp: packet.timestamp)
+            return PlayerPosition(id: 0, x: 0, y: 0, timestamp: packet.timestamp)
         }
 
         let x = data.withUnsafeBytes { $0.load(fromByteOffset: 0, as: Double.self) }
         let y = data.withUnsafeBytes { $0.load(fromByteOffset: 8, as: Double.self) }
         let playerId: UInt8 = data.withUnsafeBytes { $0.load(fromByteOffset: 16, as: UInt8.self) }
 
-        let speed: CGFloat
-        if let prev = players[playerId] {
-            let dt = packet.timestamp.timeIntervalSince(prev.timestamp)
-            guard dt > 0 else {
-                return PlayerPosition(id: playerId, x: CGFloat(x), y: CGFloat(y), speed: prev.speed, timestamp: packet.timestamp)
-            }
-            let dx = CGFloat(x) - prev.x
-            let dy = CGFloat(y) - prev.y
-            let rawSpeed = sqrt(dx * dx + dy * dy) / CGFloat(dt)
-            
-            let alpha: CGFloat = 0.1  // 0.1 = více vyhlazené, 0.5 = více reaktivní
-            let prev = smoothedSpeeds[playerId, default: rawSpeed]
-            speed = alpha * rawSpeed + (1 - alpha) * prev
-        } else {
-            speed = 0
-        }
-        
-        smoothedSpeeds[playerId] = speed
-        return PlayerPosition(id: playerId, x: CGFloat(x), y: CGFloat(y), speed: speed, timestamp: packet.timestamp)
+        return PlayerPosition(id: playerId, x: CGFloat(x), y: CGFloat(y), timestamp: packet.timestamp)
     }
 }
