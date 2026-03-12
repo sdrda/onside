@@ -34,7 +34,7 @@ jobs:
           xcodebuild test \
             -project Onside.xcodeproj \
             -scheme Onside \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -destination 'platform=iOS Simulator,name=iPhone 17' \
             CODE_SIGNING_ALLOWED=NO \
             COMPILER_INDEX_STORE_ENABLE=NO \
             | xcpretty && exit ${PIPESTATUS[0]}
