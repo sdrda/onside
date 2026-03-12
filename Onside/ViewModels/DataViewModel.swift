@@ -8,6 +8,10 @@
 import Foundation
 import SwiftUI
 
+struct AppError: LocalizedError {
+    let errorDescription: String?
+}
+
 @Observable
 @MainActor
 final class DataViewModel: PlayerDataSource {
@@ -29,7 +33,7 @@ final class DataViewModel: PlayerDataSource {
         self.receiver = UDPReceiver(port: 9000)
     }
 
-    func start() {
+    func startLiveTransfer() {
         isConnected = true
         task = Task {
             let stream = await receiver.start()
@@ -52,12 +56,18 @@ final class DataViewModel: PlayerDataSource {
         }
     }
 
-    func stop() {
+    func stopLiveTransfer() throws {
+        if isRecording {
+            throw AppError(errorDescription: "Cannot stop live transfer while recording")
+        }
+        
         task?.cancel()
         Task { await receiver.stop() }
         isConnected = false
         playerIDs = []
         players = [:]
+        
+        // Odstranění dat z bridge
         PlayerPositionBridge.shared.positions = [:]
     }
 
@@ -70,7 +80,25 @@ final class DataViewModel: PlayerDataSource {
     func stopRecording() {
         isRecording = false
     }
-
+    
+    func loadRecordedData(positions: [PlayerPosition]) {
+        self.recordingBuffer = positions
+        self.recordedCount = positions.count
+    }
+    
+    func loadFromFile(url: URL) {
+        guard url.startAccessingSecurityScopedResource() else { return }
+        defer { url.stopAccessingSecurityScopedResource() }
+        
+        do {
+            let data = try Data(contentsOf: url)
+            let positions = try JSONDecoder().decode([PlayerPosition].self, from: data)
+            loadRecordedData(positions: positions)
+        } catch {
+            print("Chyba při načítání: \(error)")
+        }
+    }
+    
     private func transformToPlayerPosition(packet: UDPPacket) -> PlayerPosition {
         let data = packet.rawBytes
         guard data.count >= 17 else {

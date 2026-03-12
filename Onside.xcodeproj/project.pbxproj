@@ -72,6 +72,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		F4C295942F6337F5000BE60D /* Exceptions for "Onside" folder in "Onside" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = F4EC42A52F36311500A8AE17 /* Onside */;
+		};
 		F4DC09672F5DFDE00081712B /* Exceptions for "Onside" folder in "OnsideWatch Watch App" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -100,6 +107,7 @@
 		F4EC42A82F36311500A8AE17 /* Onside */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
+				F4C295942F6337F5000BE60D /* Exceptions for "Onside" folder in "Onside" target */,
 				F4DC09672F5DFDE00081712B /* Exceptions for "Onside" folder in "OnsideWatch Watch App" target */,
 			);
 			path = Onside;
@@ -795,6 +803,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Onside/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Pro zobrazení hřiště v prostoru je nutné povolit kameru.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -840,6 +849,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Onside/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Pro zobrazení hřiště v prostoru je nutné povolit kameru.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
