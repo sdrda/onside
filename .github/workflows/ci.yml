@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: macos-26
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      # Build bez code signing
+      - name: Build
+        run: |
+          xcodebuild build \
+            -project Onside.xcodeproj \
+            -scheme Onside \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            | xcpretty && exit ${PIPESTATUS[0]}
+
+      # Unit testy na simulátoru
+      - name: Test
+        run: |
+          xcodebuild test \
+            -project Onside.xcodeproj \
+            -scheme Onside \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            CODE_SIGNING_ALLOWED=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            | xcpretty && exit ${PIPESTATUS[0]}
+
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+
+  lint:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: SwiftLint
+        run: |
+          if which swiftlint > /dev/null; then
+            swiftlint --strict
+          else
+            echo "SwiftLint není nainstalován, přeskakuji"
+          fi

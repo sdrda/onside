@@ -43,15 +43,13 @@ struct RealityRinkView: View {
     @State private var isARMode = false
     let config: RinkConfiguration = .standard
     var viewModel: DataViewModel
-    
+
     init(viewModel: DataViewModel) {
         self.viewModel = viewModel
-        
-        // Registrace ECS subsystému před vykreslením
         PlayerComponent.registerComponent()
         PlayerMovementSystem.registerSystem()
     }
-    
+
     var body: some View {
         VStack {
             Toggle("Přepnout do AR módu", isOn: $isARMode)
@@ -61,25 +59,18 @@ struct RealityRinkView: View {
                     #if os(iOS)
                     content.camera = .spatialTracking
                     #endif
-                    
                     let anchor = AnchorEntity(.plane(.horizontal, classification: .any, minimumBounds: [0.5, 0.5]))
-                    let rinkEntity = createRinkEntity()
-                    
-                    anchor.addChild(rinkEntity)
+                    anchor.addChild(createRinkEntity())
                     content.add(anchor)
-                    
                 } update: { content in
                     let ids = viewModel.playerIDs
                     guard let rink = findRink(in: content.entities) else { return }
                     syncPlayers(ids: ids, on: rink)
                 }
-
             } else {
                 RealityView { content in
                     content.camera = .virtual
-                    let rinkEntity = createRinkEntity()
-                    content.add(rinkEntity)
-
+                    content.add(createRinkEntity())
                 } update: { content in
                     let ids = viewModel.playerIDs
                     guard let rink = findRink(in: content.entities) else { return }
@@ -89,7 +80,7 @@ struct RealityRinkView: View {
             }
         }
     }
-    
+
     // MARK: - Pomocné funkce
 
     private func findRink(in entities: some Sequence<Entity>) -> Entity? {
@@ -100,9 +91,7 @@ struct RealityRinkView: View {
         return nil
     }
 
-    // Volá se jen při změně playerIDs – přidá nové, odstraní zaniklé entity
     private func syncPlayers(ids: Set<UInt8>, on rink: Entity) {
-        // Přidat chybějící
         for playerID in ids {
             let playerName = "player_\(playerID)"
             guard rink.findEntity(named: playerName) == nil else { continue }
@@ -111,37 +100,28 @@ struct RealityRinkView: View {
             newEntity.name = playerName
             rink.addChild(newEntity)
         }
-        // Odstranit zaniklé
         for child in rink.children where child.name.hasPrefix("player_") {
             if let id = UInt8(child.name.dropFirst("player_".count)), !ids.contains(id) {
                 child.removeFromParent()
             }
         }
     }
-    
+
     private func createRinkEntity() -> ModelEntity {
         let renderer = RinkRenderer(config: config)
-        
-        // Vygenerování textury pro hřiště
         let rinkUIImage = renderer.render(size: CGSize(width: 2048, height: 1024))
-        
         let mesh = MeshResource.generatePlane(width: 0.6, depth: 0.3, cornerRadius: 0.085)
         var material = SimpleMaterial()
         material.roughness = 0.15
-        
-        if let cgImage = rinkUIImage.cgImage {
-            if let texture = try? TextureResource(image: cgImage, options: .init(semantic: .color)) {
-                material.color = .init(texture: .init(texture))
-            }
+        if let cgImage = rinkUIImage.cgImage,
+           let texture = try? TextureResource(image: cgImage, options: .init(semantic: .color)) {
+            material.color = .init(texture: .init(texture))
         }
-        
         let entity = ModelEntity(mesh: mesh, materials: [material])
-        
-        // Přiřadíme jméno pro vyhledávání
         entity.name = "RinkPlane"
         return entity
     }
-    
+
     private func createPlayerEntity(id: UInt8, startPos: SIMD3<Float>) -> Entity {
         let mesh = MeshResource.generateCylinder(height: 0.02, radius: 0.008)
         let material = SimpleMaterial(color: .red, isMetallic: false)

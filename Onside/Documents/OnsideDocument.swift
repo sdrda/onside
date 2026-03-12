@@ -7,7 +7,6 @@
 
 import SwiftUI
 import UniformTypeIdentifiers
-import UniformTypeIdentifiers
 
 extension UTType {
     static var onside: UTType {
@@ -17,20 +16,20 @@ extension UTType {
 
 struct OnsideDocument: FileDocument {
     static var readableContentTypes: [UTType] { [.onside] }
-    
-    var positions: [PlayerPosition]
-    
-    init(positions: [PlayerPosition]) {
-        self.positions = positions
+
+    var tracks: [SerializedTrack]
+
+    init(tracks: [SerializedTrack]) {
+        self.tracks = tracks
     }
-    
+
     init(configuration: ReadConfiguration) throws {
         let data = configuration.file.regularFileContents ?? Data()
-        positions = try JSONDecoder().decode([PlayerPosition].self, from: data)
+        tracks = try JSONDecoder().decode([SerializedTrack].self, from: data)
     }
-    
+
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-        let data = try JSONEncoder().encode(positions)
+        let data = try JSONEncoder().encode(tracks)
         return FileWrapper(regularFileWithContents: data)
     }
 }

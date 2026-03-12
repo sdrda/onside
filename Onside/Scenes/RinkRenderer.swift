@@ -8,7 +8,7 @@
 import UIKit
 
 /// Vygeneruje UIImage ledové plochy podle zadané RinkConfiguration.
-/// Obrázek lze přímo předat jako texturu do SKSpriteNode.
+/// Obrázek lze přímo předat jako texturu do RealityKitu.
 struct RinkRenderer {
     let config: RinkConfiguration
 

@@ -12,19 +12,27 @@ struct AppError: LocalizedError {
     let errorDescription: String?
 }
 
+struct PlayerStats {
+    var speed: Double = 0
+    var distance: Double = 0
+}
+
 @Observable
 @MainActor
-final class DataViewModel: PlayerDataSource {
+final class DataViewModel {
     private(set) var playerIDs: Set<UInt8> = []
     private(set) var isConnected = false
     private(set) var isRecording = false
     private(set) var recordedCount = 0
-    
+
+    private(set) var stats: [UInt8: PlayerStats] = [:]
+    var selectedPlayerID: UInt8? = nil
+
+    // Hlavní úložiště – nahrazuje recordingBuffer i players
     @ObservationIgnored
-    private(set) var recordingBuffer: [PlayerPosition] = []
-    
+    private(set) var tracks: [UInt8: PlayerTrack] = [:]
     @ObservationIgnored
-    private(set) var players: [UInt8: PlayerPosition] = [:]
+    private var packetCount: [UInt8: Int] = [:]
 
     private let receiver: UDPReceiver
     private var task: Task<Void, Never>?
@@ -33,6 +41,8 @@ final class DataViewModel: PlayerDataSource {
         self.receiver = UDPReceiver(port: 9000)
     }
 
+    // MARK: - Live transfer
+
     func startLiveTransfer() {
         isConnected = true
         task = Task {
@@ -40,16 +50,25 @@ final class DataViewModel: PlayerDataSource {
             for await packet in stream {
                 guard !Task.isCancelled else { break }
                 let pos = transformToPlayerPosition(packet: packet)
-                players[pos.id] = pos
 
-                let scale: Float = 0.01
-                PlayerPositionBridge.shared.positions[pos.id] = [Float(pos.x) * scale, 0, Float(pos.y) * scale]
+                updateBridge(pos)
 
                 if !playerIDs.contains(pos.id) { playerIDs.insert(pos.id) }
 
                 if isRecording {
-                    recordingBuffer.append(pos)
+                    tracks[pos.id, default: PlayerTrack(playerID: pos.id)].append(pos)
                     recordedCount += 1
+                } else {
+                    if tracks[pos.id] == nil {
+                        tracks[pos.id] = PlayerTrack(playerID: pos.id)
+                    }
+                    tracks[pos.id]?.append(pos)
+                }
+
+                // Stats update každých 10 paketů na hráče
+                packetCount[pos.id, default: 0] += 1
+                if packetCount[pos.id]! % 10 == 0, let track = tracks[pos.id] {
+                    stats[pos.id] = PlayerStats(speed: track.currentSpeed, distance: track.totalDistance)
                 }
             }
             isConnected = false
@@ -60,19 +79,20 @@ final class DataViewModel: PlayerDataSource {
         if isRecording {
             throw AppError(errorDescription: "Cannot stop live transfer while recording")
         }
-        
+
         task?.cancel()
         Task { await receiver.stop() }
         isConnected = false
         playerIDs = []
-        players = [:]
-        
-        // Odstranění dat z bridge
+        tracks = [:]
+
         PlayerPositionBridge.shared.positions = [:]
     }
 
+    // MARK: - Recording
+
     func startRecording() {
-        recordingBuffer = []
+        tracks = [:]
         recordedCount = 0
         isRecording = true
     }
@@ -80,25 +100,98 @@ final class DataViewModel: PlayerDataSource {
     func stopRecording() {
         isRecording = false
     }
-    
-    func loadRecordedData(positions: [PlayerPosition]) {
-        self.recordingBuffer = positions
-        self.recordedCount = positions.count
+
+    // MARK: - Load
+
+    func loadRecordedData(tracks: [SerializedTrack]) {
+        self.tracks = [:]
+        for snapshot in tracks {
+            self.tracks[snapshot.playerID] = PlayerTrack.restore(from: snapshot)
+        }
+        recordedCount = self.tracks.values.reduce(0) { $0 + $1.positions.count }
     }
-    
+
     func loadFromFile(url: URL) {
         guard url.startAccessingSecurityScopedResource() else { return }
         defer { url.stopAccessingSecurityScopedResource() }
-        
+
         do {
             let data = try Data(contentsOf: url)
-            let positions = try JSONDecoder().decode([PlayerPosition].self, from: data)
-            loadRecordedData(positions: positions)
+            let snapshots = try JSONDecoder().decode([SerializedTrack].self, from: data)
+            loadRecordedData(tracks: snapshots)
         } catch {
             print("Chyba při načítání: \(error)")
         }
     }
-    
+
+    // MARK: - Analytics helpers
+
+    func totalDistance(for playerID: UInt8) -> Double {
+        stats[playerID]?.distance ?? 0
+    }
+
+    func currentSpeed(for playerID: UInt8) -> Double {
+        stats[playerID]?.speed ?? 0
+    }
+
+    func heatmapPoints(for playerID: UInt8) -> [(x: CGFloat, y: CGFloat)] {
+        tracks[playerID]?.heatmapPoints ?? []
+    }
+
+    // MARK: - Replay
+
+    private(set) var isReplaying = false
+
+    @ObservationIgnored
+    private var replayTask: Task<Void, Never>?
+
+    func startReplay() {
+        // Vezmi všechny pozice přes všechny hráče, seřaď podle timestampu
+        let allPositions = tracks.values
+            .flatMap { $0.positions }
+            .sorted { $0.timestamp < $1.timestamp }
+
+        guard !allPositions.isEmpty else { return }
+
+        do { try stopLiveTransfer() } catch {
+            print("Chyba při zastavení live transferu: \(error)")
+        }
+
+        isReplaying = true
+        replayTask = Task {
+            let startTime = ContinuousClock.now
+            let recordingStart = allPositions[0].timestamp
+
+            for position in allPositions {
+                guard !Task.isCancelled else { break }
+
+                let offset = position.timestamp.timeIntervalSince(recordingStart)
+                let targetTime = startTime + .seconds(offset)
+
+                try? await Task.sleep(until: targetTime, clock: .continuous)
+                updateBridge(position)
+            }
+
+            isReplaying = false
+        }
+    }
+
+    func stopReplay() {
+        replayTask?.cancel()
+        isReplaying = false
+    }
+
+    // MARK: - Private
+
+    private func updateBridge(_ pos: PlayerPosition) {
+        let scale: Float = 0.01
+        PlayerPositionBridge.shared.positions[pos.id] = [
+            Float(pos.x) * scale,
+            0,
+            Float(pos.y) * scale
+        ]
+    }
+
     private func transformToPlayerPosition(packet: UDPPacket) -> PlayerPosition {
         let data = packet.rawBytes
         guard data.count >= 17 else {
