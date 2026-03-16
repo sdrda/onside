@@ -39,8 +39,14 @@ class PlayerMovementSystem: System {
     }
 }
 
+private final class EntityClearState {
+    var lastToken = -1
+}
+
 struct RealityRinkView: View {
     @State private var isARMode = false
+    @State private var cachedRinkImage: CGImage? = nil
+    @State private var clearState = EntityClearState()
     let config: RinkConfiguration = .standard
     var viewModel: DataViewModel
 
@@ -51,34 +57,24 @@ struct RealityRinkView: View {
     }
 
     var body: some View {
-        VStack {
-            Toggle("Přepnout do AR módu", isOn: $isARMode)
-                .padding()
-            if isARMode {
-                RealityView { content in
-                    #if os(iOS)
-                    content.camera = .spatialTracking
-                    #endif
-                    let anchor = AnchorEntity(.plane(.horizontal, classification: .any, minimumBounds: [0.5, 0.5]))
-                    anchor.addChild(createRinkEntity())
-                    content.add(anchor)
-                } update: { content in
-                    let ids = viewModel.playerIDs
-                    guard let rink = findRink(in: content.entities) else { return }
-                    syncPlayers(ids: ids, on: rink)
+        RealityView { content in
+            content.camera = .virtual
+            content.add(await createRinkEntity())
+        } update: { content in
+            let ids = viewModel.playerIDs
+            let token = viewModel.entityClearToken
+            guard let rink = findRink(in: content.entities) else { return }
+
+            if clearState.lastToken != token {
+                clearState.lastToken = token
+                for child in rink.children where child.name.hasPrefix("player_") {
+                    child.removeFromParent()
                 }
-            } else {
-                RealityView { content in
-                    content.camera = .virtual
-                    content.add(createRinkEntity())
-                } update: { content in
-                    let ids = viewModel.playerIDs
-                    guard let rink = findRink(in: content.entities) else { return }
-                    syncPlayers(ids: ids, on: rink)
-                }
-                .realityViewCameraControls(.orbit)
             }
+
+            syncPlayers(ids: ids, on: rink)
         }
+        .realityViewCameraControls(.orbit)
     }
 
     // MARK: - Pomocné funkce
@@ -107,14 +103,23 @@ struct RealityRinkView: View {
         }
     }
 
-    private func createRinkEntity() -> ModelEntity {
-        let renderer = RinkRenderer(config: config)
-        let rinkUIImage = renderer.render(size: CGSize(width: 2048, height: 1024))
+    private func createRinkEntity() async -> ModelEntity {
+        let cgImage: CGImage
+        if let cached = cachedRinkImage {
+            cgImage = cached
+        } else {
+            let cfg = config
+            let rendered = await Task.detached(priority: .userInitiated) {
+                RinkRenderer(config: cfg).render(size: CGSize(width: 2048, height: 1024))
+            }.value
+            cgImage = rendered ?? emptyCGImage()
+            cachedRinkImage = cgImage
+        }
+
         let mesh = MeshResource.generatePlane(width: 0.6, depth: 0.3, cornerRadius: 0.085)
         var material = SimpleMaterial()
         material.roughness = 0.15
-        if let cgImage = rinkUIImage.cgImage,
-           let texture = try? TextureResource(image: cgImage, options: .init(semantic: .color)) {
+        if let texture = try? await TextureResource(image: cgImage, options: .init(semantic: .color)) {
             material.color = .init(texture: .init(texture))
         }
         let entity = ModelEntity(mesh: mesh, materials: [material])
@@ -129,5 +134,14 @@ struct RealityRinkView: View {
         entity.position = startPos
         entity.components.set(PlayerComponent(targetPosition: startPos, playerID: id))
         return entity
+    }
+
+    /// Minimální fallback 1×1 obrázek pokud render selže.
+    private func emptyCGImage() -> CGImage {
+        let ctx = CGContext(data: nil, width: 1, height: 1,
+                           bitsPerComponent: 8, bytesPerRow: 0,
+                           space: CGColorSpaceCreateDeviceRGB(),
+                           bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue)!
+        return ctx.makeImage()!
     }
 }

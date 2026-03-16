@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		F4DC09542F5DFC640081712B /* OnsideWatch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = F4DC09342F5DFC630081712B /* OnsideWatch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		F4DC09542F5DFC640081712B /* OnsideWatch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = F4DC09342F5DFC630081712B /* OnsideWatch Watch App.app */; platformFilters = (ios, xros, ); settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -499,6 +499,10 @@
 		};
 		F4DC09532F5DFC640081712B /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
+			platformFilters = (
+				ios,
+				xros,
+			);
 			target = F4DC09332F5DFC630081712B /* OnsideWatch Watch App */;
 			targetProxy = F4DC09522F5DFC640081712B /* PBXContainerItemProxy */;
 		};

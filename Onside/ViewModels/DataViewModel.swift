@@ -22,8 +22,17 @@ struct PlayerStats {
 final class DataViewModel {
     private(set) var playerIDs: Set<UInt8> = []
     private(set) var isConnected = false
+    private(set) var isReceivingData = false
+    private(set) var entityClearToken = 0
     private(set) var isRecording = false
     private(set) var recordedCount = 0
+    private(set) var recordingStartTime: Date? = nil
+    private(set) var recordingDuration: TimeInterval? = nil
+    private(set) var loadedFileDuration: TimeInterval? = nil
+    private(set) var loadedFileName: String? = nil
+
+    @ObservationIgnored
+    private var dataTimeoutTask: Task<Void, Never>?
 
     private(set) var stats: [UInt8: PlayerStats] = [:]
     var selectedPlayerID: UInt8? = nil
@@ -52,6 +61,7 @@ final class DataViewModel {
                 let pos = transformToPlayerPosition(packet: packet)
 
                 updateBridge(pos)
+                markDataReceived()
 
                 if !playerIDs.contains(pos.id) { playerIDs.insert(pos.id) }
 
@@ -94,11 +104,16 @@ final class DataViewModel {
     func startRecording() {
         tracks = [:]
         recordedCount = 0
+        recordingStartTime = Date()
         isRecording = true
     }
 
     func stopRecording() {
+        if let start = recordingStartTime {
+            recordingDuration = Date().timeIntervalSince(start)
+        }
         isRecording = false
+        recordingStartTime = nil
     }
 
     // MARK: - Load
@@ -119,8 +134,30 @@ final class DataViewModel {
             let data = try Data(contentsOf: url)
             let snapshots = try JSONDecoder().decode([SerializedTrack].self, from: data)
             loadRecordedData(tracks: snapshots)
+            loadedFileName = url.deletingPathExtension().lastPathComponent
+            let allTimestamps = snapshots.flatMap { $0.positions.map(\.timestamp) }
+            if let first = allTimestamps.min(), let last = allTimestamps.max() {
+                loadedFileDuration = last.timeIntervalSince(first)
+            }
         } catch {
             print("Chyba při načítání: \(error)")
+        }
+    }
+
+    func clearLoadedFile() {
+        replayTask?.cancel()
+        isReplaying = false
+
+        loadedFileName = nil
+        tracks = [:]
+        recordedCount = 0
+        playerIDs = []
+        entityClearToken += 1
+        PlayerPositionBridge.shared.positions = [:]
+
+        Task { @MainActor [weak self] in
+            guard let self, !self.isConnected else { return }
+            self.startLiveTransfer()
         }
     }
 
@@ -153,9 +190,15 @@ final class DataViewModel {
 
         guard !allPositions.isEmpty else { return }
 
+        let replayPlayerIDs = Set(tracks.keys)
+        let savedTracks = tracks  // stopLiveTransfer by je smazal
+
         do { try stopLiveTransfer() } catch {
             print("Chyba při zastavení live transferu: \(error)")
         }
+
+        tracks = savedTracks
+        playerIDs = replayPlayerIDs
 
         isReplaying = true
         replayTask = Task {
@@ -172,6 +215,7 @@ final class DataViewModel {
                 updateBridge(position)
             }
 
+            startLiveTransfer()
             isReplaying = false
         }
     }
@@ -179,9 +223,20 @@ final class DataViewModel {
     func stopReplay() {
         replayTask?.cancel()
         isReplaying = false
+        startLiveTransfer()
     }
 
     // MARK: - Private
+
+    private func markDataReceived() {
+        isReceivingData = true
+        dataTimeoutTask?.cancel()
+        dataTimeoutTask = Task {
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            isReceivingData = false
+        }
+    }
 
     private func updateBridge(_ pos: PlayerPosition) {
         let scale: Float = 0.01
