@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import SwiftUI
+import CoreGraphics
 
 struct SerializedTrack: Codable {
     let playerID: UInt8

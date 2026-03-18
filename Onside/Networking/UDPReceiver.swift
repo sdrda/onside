@@ -15,7 +15,8 @@ struct UDPPacket: Sendable {
 }
 
 actor UDPReceiver {
-    private var connection: NWConnection?
+    private var listener: NWListener?
+    private var connections: [NWConnection] = []
     private let port: NWEndpoint.Port
     private var continuation: AsyncStream<UDPPacket>.Continuation?
 
@@ -28,21 +29,27 @@ actor UDPReceiver {
         self.continuation = continuation
 
         let params = NWParameters.udp
-        let listener = try? NWListener(using: params, on: self.port)
+        guard let listener = try? NWListener(using: params, on: self.port) else {
+            print("[UDPReceiver] Failed to create listener on port \(self.port)")
+            continuation.finish()
+            return stream
+        }
+        self.listener = listener
 
-        listener?.newConnectionHandler = { [weak self] conn in
+        listener.stateUpdateHandler = { state in
+            print("[UDPReceiver] Listener state: \(state)")
+        }
+
+        listener.newConnectionHandler = { [weak self] conn in
             Task { await self?.handleConnection(conn) }
         }
-        listener?.start(queue: .global(qos: .userInteractive))
-
-        continuation.onTermination = { _ in
-            listener?.cancel()
-        }
+        listener.start(queue: .global(qos: .userInteractive))
 
         return stream
     }
 
     private func handleConnection(_ conn: NWConnection) {
+        connections.append(conn)
         conn.start(queue: .global(qos: .userInteractive))
         receiveLoop(conn)
     }
@@ -60,6 +67,12 @@ actor UDPReceiver {
 
     func stop() {
         continuation?.finish()
-        connection?.cancel()
+        continuation = nil
+        for conn in connections {
+            conn.cancel()
+        }
+        connections.removeAll()
+        listener?.cancel()
+        listener = nil
     }
 }

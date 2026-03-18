@@ -9,9 +9,24 @@ import SwiftUI
 
 @main
 struct OnsideApp: App {
+    private let container = AppContainer()
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MainView()
+                .environment(\.container, container)
+                .onAppear { container.connect() }
         }
+    }
+}
+
+private struct AppContainerKey: EnvironmentKey {
+    nonisolated(unsafe) static var defaultValue = AppContainer()
+}
+
+extension EnvironmentValues {
+    var container: AppContainer {
+        get { self[AppContainerKey.self] }
+        set { self[AppContainerKey.self] = newValue }
     }
 }

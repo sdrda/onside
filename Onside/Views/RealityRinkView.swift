@@ -8,50 +8,13 @@
 import SwiftUI
 import RealityKit
 
-final class PlayerPositionBridge {
-    static let shared = PlayerPositionBridge()
-    private init() {}
-    nonisolated(unsafe) var positions: [UInt8: SIMD3<Float>] = [:]
-}
-
-struct PlayerComponent: Component {
-    var targetPosition: SIMD3<Float>
-    var playerID: UInt8
-}
-
-class PlayerMovementSystem: System {
-    private static let query = EntityQuery(where: .has(PlayerComponent.self))
-
-    required init(scene: RealityKit.Scene) {}
-
-    func update(context: SceneUpdateContext) {
-        let positions = PlayerPositionBridge.shared.positions
-        let t = SIMD3<Float>(repeating: min(1.0, 10.0 * Float(context.deltaTime)))
-
-        for entity in context.scene.performQuery(Self.query) {
-            guard var comp = entity.components[PlayerComponent.self] else { continue }
-            if let pos = positions[comp.playerID] {
-                comp.targetPosition = pos
-                entity.components.set(comp)
-            }
-            entity.position = simd_mix(entity.position, comp.targetPosition, t)
-        }
-    }
-}
-
-private final class EntityClearState {
-    var lastToken = -1
-}
-
 struct RealityRinkView: View {
-    @State private var isARMode = false
     @State private var cachedRinkImage: CGImage? = nil
-    @State private var clearState = EntityClearState()
     let config: RinkConfiguration = .standard
-    var viewModel: DataViewModel
+    var rinkViewModel: RinkViewModel
 
-    init(viewModel: DataViewModel) {
-        self.viewModel = viewModel
+    init(rinkViewModel: RinkViewModel) {
+        self.rinkViewModel = rinkViewModel
         PlayerComponent.registerComponent()
         PlayerMovementSystem.registerSystem()
     }
@@ -61,18 +24,8 @@ struct RealityRinkView: View {
             content.camera = .virtual
             content.add(await createRinkEntity())
         } update: { content in
-            let ids = viewModel.playerIDs
-            let token = viewModel.entityClearToken
             guard let rink = findRink(in: content.entities) else { return }
-
-            if clearState.lastToken != token {
-                clearState.lastToken = token
-                for child in rink.children where child.name.hasPrefix("player_") {
-                    child.removeFromParent()
-                }
-            }
-
-            syncPlayers(ids: ids, on: rink)
+            syncPlayers(on: rink)
         }
         .realityViewCameraControls(.orbit)
     }
@@ -87,15 +40,29 @@ struct RealityRinkView: View {
         return nil
     }
 
-    private func syncPlayers(ids: Set<UInt8>, on rink: Entity) {
+    private func syncPlayers(on rink: Entity) {
+        let ids = rinkViewModel.playerIDs
+        let positions = rinkViewModel.playerPositions
+
+        // Spawn nových hráčů
         for playerID in ids {
             let playerName = "player_\(playerID)"
-            guard rink.findEntity(named: playerName) == nil else { continue }
-            let startPos = PlayerPositionBridge.shared.positions[playerID] ?? .zero
-            let newEntity = createPlayerEntity(id: playerID, startPos: startPos)
-            newEntity.name = playerName
-            rink.addChild(newEntity)
+            if let existing = rink.findEntity(named: playerName) {
+                // Update targetPosition na existující entitě
+                if var comp = existing.components[PlayerComponent.self],
+                   let pos = positions[playerID] {
+                    comp.targetPosition = pos
+                    existing.components.set(comp)
+                }
+            } else {
+                let startPos = positions[playerID] ?? .zero
+                let newEntity = createPlayerEntity(id: playerID, startPos: startPos)
+                newEntity.name = playerName
+                rink.addChild(newEntity)
+            }
         }
+
+        // Despawn hráčů, kteří zmizeli
         for child in rink.children where child.name.hasPrefix("player_") {
             if let id = UInt8(child.name.dropFirst("player_".count)), !ids.contains(id) {
                 child.removeFromParent()
