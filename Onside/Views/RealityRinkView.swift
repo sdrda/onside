@@ -10,11 +10,12 @@ import RealityKit
 
 struct RealityRinkView: View {
     @State private var cachedRinkImage: CGImage? = nil
-    let config: RinkConfiguration = .standard
+    let config: any RinkConfiguration
     var rinkViewModel: RinkViewModel
 
-    init(rinkViewModel: RinkViewModel) {
+    init(rinkViewModel: RinkViewModel, config: any RinkConfiguration = IIHFRinkConfiguration.standard) {
         self.rinkViewModel = rinkViewModel
+        self.config = config
         PlayerComponent.registerComponent()
         PlayerMovementSystem.registerSystem()
     }
@@ -57,6 +58,7 @@ struct RealityRinkView: View {
             } else {
                 let startPos = positions[playerID] ?? .zero
                 let newEntity = createPlayerEntity(id: playerID, startPos: startPos)
+                print(playerID)
                 newEntity.name = playerName
                 rink.addChild(newEntity)
             }
@@ -77,7 +79,7 @@ struct RealityRinkView: View {
         } else {
             let cfg = config
             let rendered = await Task.detached(priority: .userInitiated) {
-                RinkRenderer(config: cfg).render(size: CGSize(width: 2048, height: 1024))
+                await RinkRenderer(config: cfg).render(size: CGSize(width: 2048, height: 1024))
             }.value
             cgImage = rendered ?? emptyCGImage()
             cachedRinkImage = cgImage

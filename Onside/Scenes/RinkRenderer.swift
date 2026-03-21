@@ -14,7 +14,7 @@ import UIKit   // jen kvůli UIScreen.main.scale – viz níže
 /// Vygeneruje CGImage ledové plochy podle zadané RinkConfiguration.
 /// Obrázek lze přímo předat jako texturu do RealityKitu.
 struct RinkRenderer {
-    let config: RinkConfiguration
+    let config: any RinkConfiguration
 
     func render(size: CGSize) -> CGImage? {
         let scale = displayScale
@@ -351,7 +351,7 @@ struct RinkRenderer {
 
 private struct Scale {
     let size: CGSize
-    let config: RinkConfiguration
+    let config: any RinkConfiguration
 
     var sx: CGFloat { size.width  / config.width  }
     var sy: CGFloat { size.height / config.height }

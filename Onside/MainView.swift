@@ -15,7 +15,7 @@ struct MainView: View {
     var body: some View {
         Group {
             if let rinkViewModel {
-                RinkView(rink: rinkViewModel)
+                RinkView(rink: rinkViewModel, config: container.rinkConfiguration)
             } else {
                 ProgressView()
             }

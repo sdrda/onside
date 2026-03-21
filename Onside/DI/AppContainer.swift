@@ -7,12 +7,18 @@
 
 final class AppContainer {
 
-    let sessionStorage: SessionStorage
-    let dataProcessor: DataProcessor
+    let sessionStorage: any SessionStorageProtocol
+    let dataProcessor: any DataProcessorProtocol
+    let rinkConfiguration: any RinkConfiguration
 
-    init() {
-        self.sessionStorage = SessionStorage()
-        self.dataProcessor = DataProcessor(sessionStorage: sessionStorage)
+    init(
+        sessionStorage: any SessionStorageProtocol = SessionStorage(),
+        dataProcessor: (any DataProcessorProtocol)? = nil,
+        rinkConfiguration: any RinkConfiguration = IIHFRinkConfiguration.standard
+    ) {
+        self.sessionStorage = sessionStorage
+        self.dataProcessor = dataProcessor ?? DataProcessor(sessionStorage: sessionStorage)
+        self.rinkConfiguration = rinkConfiguration
     }
     
     func connect() {
@@ -24,7 +30,7 @@ final class AppContainer {
     }
     
     func makeRinkViewModel() -> RinkViewModel {
-        RinkViewModel(dataProcessor: dataProcessor)
+        RinkViewModel(dataProcessor: dataProcessor, sessionStorage: sessionStorage)
     }
 }
 

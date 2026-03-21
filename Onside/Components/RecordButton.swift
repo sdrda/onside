@@ -18,34 +18,26 @@ struct RecordButton: View {
         self.action = action
     }
 
-    private let lime = Color(red: 0.78, green: 1.0, blue: 0.0)
-
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 10) {
+            HStack(spacing: 6) {
                 if isRecording {
                     Circle()
-                        .fill(.black.opacity(0.6))
-                        .frame(width: 10, height: 10)
+                        .fill(.red)
+                        .frame(width: 8, height: 8)
                 }
-                Text(isRecording ? "STOP" : "RECORD")
-                    .font(.system(.title3, design: .rounded).weight(.bold))
+                Text(isRecording ? "STOP" : "REC")
+                    .font(.system(.caption, design: .rounded).weight(.semibold))
                     .foregroundStyle(isDisabled ? .gray : .black)
                     .animation(nil, value: isRecording)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 20)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
         }
         .disabled(isDisabled)
         .background(
-            UnevenRoundedRectangle(
-                topLeadingRadius: 24,
-                bottomLeadingRadius: 0,
-                bottomTrailingRadius: 0,
-                topTrailingRadius: 24
-            )
-            .fill(isDisabled ? Color(white: 0.9) : (isRecording ? lime.opacity(0.7) : lime))
-            .ignoresSafeArea(edges: .bottom)
+            Capsule()
+                .fill(isDisabled ? Color(white: 0.85) : .white)
         )
     }
 }

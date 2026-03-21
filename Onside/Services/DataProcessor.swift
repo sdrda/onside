@@ -7,17 +7,17 @@
 
 import Foundation
 
-actor DataProcessor {
-    private let sessionStorage: SessionStorage
-    private let receiver: UDPReceiver
+actor DataProcessor: DataProcessorProtocol {
+    private let sessionStorage: any SessionStorageProtocol
+    private let receiver: any UDPReceiverProtocol
     private var listenTask: Task<Void, Never>?
     private let positionScale: Float = 0.01
     private var positionContinuation: AsyncStream<PlayerPosition>.Continuation?
     
     /// Stream pozic pro odběratele (např. RinkViewModel)
-    let positions: AsyncStream<PlayerPosition>
+    nonisolated let positions: AsyncStream<PlayerPosition>
     
-    init(receiver: UDPReceiver = UDPReceiver(port: 9001), sessionStorage: SessionStorage = SessionStorage()) {
+    init(receiver: any UDPReceiverProtocol = UDPReceiver(port: 9001), sessionStorage: any SessionStorageProtocol = SessionStorage()) {
         self.receiver = receiver
         self.sessionStorage = sessionStorage
         
@@ -34,7 +34,9 @@ actor DataProcessor {
                 guard !Task.isCancelled else { break }
                 if let position = transformToPlayerPosition(packet: packet) {
                     positionContinuation?.yield(position)
-                    await sessionStorage.appendPosition(position: position)
+                    if await sessionStorage.isRecording() {
+                        await sessionStorage.appendPosition(position: position)
+                    }
                 }
             }
         }

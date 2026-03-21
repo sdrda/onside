@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-actor SessionStorage {
+actor SessionStorage: SessionStorageProtocol {
     private var playerTracks: [PlayerTrack] = []
     private(set) var recording: Bool = false
     
@@ -42,5 +42,10 @@ actor SessionStorage {
     /// Příznak, zda se nahrává
     func isRecording() -> Bool {
         recording
+    }
+    
+    /// Počet nahraných pozic pro každého hráče
+    func positionCounts() -> [UInt8: Int] {
+        Dictionary(uniqueKeysWithValues: playerTracks.map { ($0.playerID, $0.positions.count) })
     }
 }

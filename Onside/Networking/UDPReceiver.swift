@@ -14,7 +14,7 @@ struct UDPPacket: Sendable {
     let rawBytes: Data
 }
 
-actor UDPReceiver {
+actor UDPReceiver: UDPReceiverProtocol {
     private var listener: NWListener?
     private var connections: [NWConnection] = []
     private let port: NWEndpoint.Port
