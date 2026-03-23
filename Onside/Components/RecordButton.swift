@@ -37,7 +37,7 @@ struct RecordButton: View {
         .disabled(isDisabled)
         .background(
             Capsule()
-                .fill(isDisabled ? Color(white: 0.85) : .white)
+                .fill(isDisabled ? Color.onsideOrange.opacity(0.85) : Color.onsideOrange)
         )
     }
 }

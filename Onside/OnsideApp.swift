@@ -15,7 +15,6 @@ struct OnsideApp: App {
         WindowGroup {
             MainView()
                 .environment(\.container, container)
-                .onAppear { container.connect() }
         }
     }
 }

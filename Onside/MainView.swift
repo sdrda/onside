@@ -13,11 +13,13 @@ struct MainView: View {
     @State private var rinkViewModel: RinkViewModel?
     
     var body: some View {
-        Group {
-            if let rinkViewModel {
-                RinkView(rink: rinkViewModel, config: container.rinkConfiguration)
-            } else {
-                ProgressView()
+        NavigationStack {
+            Group {
+                if let rinkViewModel {
+                    RinkView(rink: rinkViewModel, config: container.rinkConfiguration)
+                } else {
+                    ProgressView()
+                }
             }
         }
         .onAppear {

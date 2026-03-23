@@ -98,7 +98,7 @@ struct RealityRinkView: View {
 
     private func createPlayerEntity(id: UInt8, startPos: SIMD3<Float>) -> Entity {
         let mesh = MeshResource.generateCylinder(height: 0.02, radius: 0.008)
-        let material = SimpleMaterial(color: .red, isMetallic: false)
+        let material = SimpleMaterial(color: .black, isMetallic: false)
         let entity = ModelEntity(mesh: mesh, materials: [material])
         entity.position = startPos
         entity.components.set(PlayerComponent(targetPosition: startPos, playerID: id))

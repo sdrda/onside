@@ -14,4 +14,6 @@ protocol SessionStorageProtocol: Actor {
     var playerTrackCount: Int { get }
     func isRecording() -> Bool
     func positionCounts() -> [UInt8: Int]
+    func playerIDs() -> [UInt8]
+    func heatmapPoints(for playerID: UInt8) -> [(x: CGFloat, y: CGFloat)]
 }

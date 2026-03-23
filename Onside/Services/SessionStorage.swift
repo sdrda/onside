@@ -48,4 +48,14 @@ actor SessionStorage: SessionStorageProtocol {
     func positionCounts() -> [UInt8: Int] {
         Dictionary(uniqueKeysWithValues: playerTracks.map { ($0.playerID, $0.positions.count) })
     }
+    
+    /// Seznam ID hráčů
+    func playerIDs() -> [UInt8] {
+        playerTracks.map { $0.playerID }.sorted()
+    }
+    
+    /// Body pro heatmapu konkrétního hráče
+    func heatmapPoints(for playerID: UInt8) -> [(x: CGFloat, y: CGFloat)] {
+        playerTracks.first(where: { $0.playerID == playerID })?.heatmapPoints ?? []
+    }
 }

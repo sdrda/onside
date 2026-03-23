@@ -21,16 +21,12 @@ final class AppContainer {
         self.rinkConfiguration = rinkConfiguration
     }
     
-    func connect() {
-        Task { await dataProcessor.connect() }
-    }
-    
-    func disconnect() {
-        Task { await dataProcessor.disconnect() }
-    }
-    
     func makeRinkViewModel() -> RinkViewModel {
         RinkViewModel(dataProcessor: dataProcessor, sessionStorage: sessionStorage)
+    }
+    
+    func makeAnalyticsViewModel() -> AnalyticsViewModel {
+        AnalyticsViewModel(sessionStorage: sessionStorage, rinkConfig: rinkConfiguration)
     }
 }
 

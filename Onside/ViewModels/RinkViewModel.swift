@@ -25,6 +25,7 @@ final class RinkViewModel {
     init(dataProcessor: any DataProcessorProtocol, sessionStorage: any SessionStorageProtocol) {
         self.dataProcessor = dataProcessor
         self.sessionStorage = sessionStorage
+        Task { await dataProcessor.connect() }
         startListening()
     }
     
@@ -48,7 +49,7 @@ final class RinkViewModel {
                 guard !Task.isCancelled else { break }
                 let scaled = SIMD3<Float>(
                     Float(position.x) * positionScale,
-                    0,
+                    0.01,
                     Float(position.y) * positionScale
                 )
                 playerPositions[position.id] = scaled
