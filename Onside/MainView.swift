@@ -21,6 +21,7 @@ struct MainView: View {
                     ProgressView()
                 }
             }
+            .toolbarTitleDisplayMode(.inline)
         }
         .onAppear {
             if rinkViewModel == nil {
