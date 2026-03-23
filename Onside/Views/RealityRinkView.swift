@@ -57,7 +57,9 @@ struct RealityRinkView: View {
                 }
             } else {
                 let startPos = positions[playerID] ?? .zero
-                let newEntity = createPlayerEntity(id: playerID, startPos: startPos)
+                let newEntity = playerID == 1
+                    ? createPuckEntity(startPos: startPos)
+                    : createPlayerEntity(id: playerID, startPos: startPos)
                 print(playerID)
                 newEntity.name = playerName
                 rink.addChild(newEntity)
@@ -101,13 +103,13 @@ struct RealityRinkView: View {
         parent.position = startPos
         parent.components.set(PlayerComponent(targetPosition: startPos, playerID: id))
 
-        // Cylinder body
-        let cylinderMesh = MeshResource.generateCylinder(height: 0.02, radius: 0.008)
+        let height: Float = 0.02
+        let cylinderMesh = MeshResource.generateCylinder(height: height, radius: 0.008)
         let cylinderMaterial = SimpleMaterial(color: .black, isMetallic: false)
         let cylinder = ModelEntity(mesh: cylinderMesh, materials: [cylinderMaterial])
         parent.addChild(cylinder)
 
-        // ID label centered on top face of cylinder
+        // ID label centered on top face
         let textMesh = MeshResource.generateText(
             "\(id)",
             extrusionDepth: 0.001,
@@ -118,9 +120,22 @@ struct RealityRinkView: View {
         let textEntity = ModelEntity(mesh: textMesh, materials: [textMaterial])
         let textBounds = textEntity.visualBounds(relativeTo: nil)
         let center = textBounds.center
-        textEntity.position = SIMD3<Float>(-center.x, 0.011, center.y)
+        textEntity.position = SIMD3<Float>(-center.x, height / 2 + 0.001, center.y)
         textEntity.orientation = simd_quatf(angle: -.pi / 2, axis: [1, 0, 0])
         parent.addChild(textEntity)
+
+        return parent
+    }
+
+    private func createPuckEntity(startPos: SIMD3<Float>) -> Entity {
+        let parent = Entity()
+        parent.position = startPos
+        parent.components.set(PlayerComponent(targetPosition: startPos, playerID: 1))
+
+        let mesh = MeshResource.generateCylinder(height: 0.005, radius: 0.005)
+        let material = SimpleMaterial(color: .darkGray, isMetallic: false)
+        let puck = ModelEntity(mesh: mesh, materials: [material])
+        parent.addChild(puck)
 
         return parent
     }
