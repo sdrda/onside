@@ -97,12 +97,32 @@ struct RealityRinkView: View {
     }
 
     private func createPlayerEntity(id: UInt8, startPos: SIMD3<Float>) -> Entity {
-        let mesh = MeshResource.generateCylinder(height: 0.02, radius: 0.008)
-        let material = SimpleMaterial(color: .black, isMetallic: false)
-        let entity = ModelEntity(mesh: mesh, materials: [material])
-        entity.position = startPos
-        entity.components.set(PlayerComponent(targetPosition: startPos, playerID: id))
-        return entity
+        let parent = Entity()
+        parent.position = startPos
+        parent.components.set(PlayerComponent(targetPosition: startPos, playerID: id))
+
+        // Cylinder body
+        let cylinderMesh = MeshResource.generateCylinder(height: 0.02, radius: 0.008)
+        let cylinderMaterial = SimpleMaterial(color: .black, isMetallic: false)
+        let cylinder = ModelEntity(mesh: cylinderMesh, materials: [cylinderMaterial])
+        parent.addChild(cylinder)
+
+        // ID label centered on top face of cylinder
+        let textMesh = MeshResource.generateText(
+            "\(id)",
+            extrusionDepth: 0.001,
+            font: .systemFont(ofSize: 0.008, weight: .bold),
+            alignment: .center
+        )
+        let textMaterial = SimpleMaterial(color: .white, isMetallic: false)
+        let textEntity = ModelEntity(mesh: textMesh, materials: [textMaterial])
+        let textBounds = textEntity.visualBounds(relativeTo: nil)
+        let center = textBounds.center
+        textEntity.position = SIMD3<Float>(-center.x, 0.011, center.y)
+        textEntity.orientation = simd_quatf(angle: -.pi / 2, axis: [1, 0, 0])
+        parent.addChild(textEntity)
+
+        return parent
     }
 
     /// Minimální fallback 1×1 obrázek pokud render selže.
