@@ -7,72 +7,60 @@
 
 import Foundation
 import Network
-import SwiftUI
-
-struct UDPPacket: Sendable {
-    let timestamp: Date
-    let rawBytes: Data
-}
 
 actor UDPReceiver: UDPReceiverProtocol {
-    private var listener: NWListener?
-    private var connections: [NWConnection] = []
+    private var listenerTask: Task<Void, Never>?
     private let port: NWEndpoint.Port
-    private var continuation: AsyncStream<UDPPacket>.Continuation?
+    private var continuation: AsyncThrowingStream<UDPPacket, Error>.Continuation?
 
     init(port: UInt16) {
         self.port = NWEndpoint.Port(rawValue: port)!
     }
 
-    func start() -> AsyncStream<UDPPacket> {
-        let (stream, continuation) = AsyncStream.makeStream(of: UDPPacket.self)
+    func startReceiving() -> AsyncThrowingStream<UDPPacket, Error> {
+        let (stream, continuation) = AsyncThrowingStream.makeStream(of: UDPPacket.self)
         self.continuation = continuation
 
-        let params = NWParameters.udp
-        guard let listener = try? NWListener(using: params, on: self.port) else {
-            print("[UDPReceiver] Failed to create listener on port \(self.port)")
-            continuation.finish()
-            return stream
-        }
-        self.listener = listener
+        self.listenerTask = Task {
+            do {
+                // Inicializujeme NetworkListener
+                let listener = try NetworkListener(
+                    using: .parameters {
+                        UDP()
+                    }.localPort(self.port)
+                )
 
-        listener.stateUpdateHandler = { state in
-            print("[UDPReceiver] Listener state: \(state)")
-        }
+                // Spustíme NetworkListener
+                try await listener.run { connection in
+                    for try await (data, _) in connection.messages {
+                        let packet = UDPPacket(
+                            timestamp: Date(),
+                            rawBytes: data
+                        )
+                        continuation.yield(packet)
+                    }
+                }
 
-        listener.newConnectionHandler = { [weak self] conn in
-            Task { await self?.handleConnection(conn) }
+                continuation.finish()
+            } catch {
+                if error is CancellationError {
+                    continuation.finish()
+                } else {
+                    continuation.finish(throwing: error)
+                }
+            }
         }
-        listener.start(queue: .global(qos: .userInteractive))
 
         return stream
     }
 
-    private func handleConnection(_ conn: NWConnection) {
-        connections.append(conn)
-        conn.start(queue: .global(qos: .userInteractive))
-        receiveLoop(conn)
-    }
-
-    private func receiveLoop(_ conn: NWConnection) {
-        conn.receiveMessage { [weak self] data, _, _, error in
-            guard let self, error == nil, let data else { return }
-            let packet = UDPPacket(timestamp: .now, rawBytes: data)
-            Task {
-                await self.continuation?.yield(packet)
-                await self.receiveLoop(conn)
-            }
-        }
-    }
-
-    func stop() {
+    func stopReceiving() {
+        // Ukončíme continuation
         continuation?.finish()
         continuation = nil
-        for conn in connections {
-            conn.cancel()
-        }
-        connections.removeAll()
-        listener?.cancel()
-        listener = nil
+
+        // Zrušíme task
+        listenerTask?.cancel()
+        listenerTask = nil
     }
 }

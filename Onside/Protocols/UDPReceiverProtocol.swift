@@ -8,6 +8,6 @@
 import Foundation
 
 protocol UDPReceiverProtocol: Actor {
-    func start() -> AsyncStream<UDPPacket>
-    func stop()
+    func startReceiving() -> AsyncThrowingStream<UDPPacket, Error>
+    func stopReceiving()
 }
