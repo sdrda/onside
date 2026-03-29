@@ -21,23 +21,27 @@ actor DataProcessor: DataProcessorProtocol {
         self.receiver = receiver
         self.sessionStorage = sessionStorage
         
-        var cont: AsyncStream<PlayerPosition>.Continuation?
-        self.positions = AsyncStream { cont = $0 }
-        self.positionContinuation = cont
+        let (stream, continuation) = AsyncStream<PlayerPosition>.makeStream()
+        self.positions = stream
+        self.positionContinuation = continuation
     }
     
     func connect() {
         guard listenTask == nil else { return }
         listenTask = Task {
-            let stream = await receiver.start()
-            for await packet in stream {
-                guard !Task.isCancelled else { break }
-                if let position = transformToPlayerPosition(packet: packet) {
-                    positionContinuation?.yield(position)
-                    if await sessionStorage.isRecording() {
-                        await sessionStorage.appendPosition(position: position)
+            do {
+                for try await packet in await receiver.startReceiving() {
+                    guard !Task.isCancelled else { break }
+                    if let position = transformToPlayerPosition(packet: packet) {
+                        positionContinuation?.yield(position)
+                        if await sessionStorage.isRecording() {
+                            await sessionStorage.appendPosition(position: position)
+                        }
                     }
                 }
+            } catch is CancellationError {
+            } catch {
+                print("[connect] Listener selhal: \(error)")
             }
         }
     }
@@ -45,10 +49,9 @@ actor DataProcessor: DataProcessorProtocol {
     func disconnect() {
         listenTask?.cancel()
         listenTask = nil
-        Task { await receiver.stop() }
+        Task { await receiver.stopReceiving() }
     }
     
-    /// Parsuje UDPPacket na PlayerPosition
     private func transformToPlayerPosition(packet: UDPPacket) -> PlayerPosition? {
         let data = packet.rawBytes
         guard data.count >= 17 else { return nil }

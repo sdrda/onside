@@ -13,16 +13,25 @@ struct MainView: View {
     @State private var rinkViewModel: RinkViewModel?
     
     var body: some View {
-        NavigationStack {
-            Group {
+        TabView {
+            Tab("Hřiště", systemImage: "sportscourt") {
                 if let rinkViewModel {
                     RinkView(rink: rinkViewModel, config: container.rinkConfiguration)
                 } else {
                     ProgressView()
                 }
             }
-            .toolbarTitleDisplayMode(.inline)
+            Tab("Hráči", systemImage: "person") {
+                PairingView()
+            }
+            Tab("Skupiny", systemImage: "person.3") {
+                PairingView()
+            }
+            Tab("Nastavení", systemImage: "gearshape") {
+                PairingView()
+            }
         }
+        .tabViewStyle(.sidebarAdaptable)
         .onAppear {
             if rinkViewModel == nil {
                 rinkViewModel = container.makeRinkViewModel()

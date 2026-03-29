@@ -7,10 +7,20 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F4D6D36D2F798DD400452DD2 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F4D6D36C2F798DD400452DD2 /* WidgetKit.framework */; };
+		F4D6D36F2F798DD400452DD2 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F4D6D36E2F798DD400452DD2 /* SwiftUI.framework */; };
+		F4D6D37E2F798DD500452DD2 /* OnsideWidgetExtensionExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F4D6D36A2F798DD400452DD2 /* OnsideWidgetExtensionExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		F4DC09542F5DFC640081712B /* OnsideWatch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = F4DC09342F5DFC630081712B /* OnsideWatch Watch App.app */; platformFilters = (ios, xros, ); settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		F4D6D37C2F798DD500452DD2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F4EC429E2F36311500A8AE17 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F4D6D3692F798DD400452DD2;
+			remoteInfo = OnsideWidgetExtensionExtension;
+		};
 		F4DC09412F5DFC640081712B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F4EC429E2F36311500A8AE17 /* Project object */;
@@ -49,6 +59,17 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		F4D6D3832F798DD500452DD2 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				F4D6D37E2F798DD500452DD2 /* OnsideWidgetExtensionExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F4DC09582F5DFC640081712B /* Embed Watch Content */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -63,6 +84,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		F4D6D36A2F798DD400452DD2 /* OnsideWidgetExtensionExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OnsideWidgetExtensionExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		F4D6D36C2F798DD400452DD2 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		F4D6D36E2F798DD400452DD2 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		F4DC09342F5DFC630081712B /* OnsideWatch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "OnsideWatch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F4DC09402F5DFC640081712B /* OnsideWatch Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "OnsideWatch Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F4DC094A2F5DFC640081712B /* OnsideWatch Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "OnsideWatch Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -79,6 +103,13 @@
 			);
 			target = F4EC42A52F36311500A8AE17 /* Onside */;
 		};
+		F4D6D3822F798DD500452DD2 /* Exceptions for "OnsideWidgetExtension" folder in "OnsideWidgetExtensionExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = F4D6D3692F798DD400452DD2 /* OnsideWidgetExtensionExtension */;
+		};
 		F4DC09672F5DFDE00081712B /* Exceptions for "Onside" folder in "OnsideWatch Watch App" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -89,6 +120,14 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		F4D6D3702F798DD400452DD2 /* OnsideWidgetExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				F4D6D3822F798DD500452DD2 /* Exceptions for "OnsideWidgetExtension" folder in "OnsideWidgetExtensionExtension" target */,
+			);
+			path = OnsideWidgetExtension;
+			sourceTree = "<group>";
+		};
 		F4DC09352F5DFC630081712B /* OnsideWatch Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "OnsideWatch Watch App";
@@ -126,6 +165,15 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		F4D6D3672F798DD400452DD2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F4D6D36F2F798DD400452DD2 /* SwiftUI.framework in Frameworks */,
+				F4D6D36D2F798DD400452DD2 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F4DC09312F5DFC630081712B /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -171,6 +219,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		F4D6D36B2F798DD400452DD2 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				F4D6D36C2F798DD400452DD2 /* WidgetKit.framework */,
+				F4D6D36E2F798DD400452DD2 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		F4EC429D2F36311500A8AE17 = {
 			isa = PBXGroup;
 			children = (
@@ -180,6 +237,8 @@
 				F4DC09352F5DFC630081712B /* OnsideWatch Watch App */,
 				F4DC09432F5DFC640081712B /* OnsideWatch Watch AppTests */,
 				F4DC094D2F5DFC640081712B /* OnsideWatch Watch AppUITests */,
+				F4D6D3702F798DD400452DD2 /* OnsideWidgetExtension */,
+				F4D6D36B2F798DD400452DD2 /* Frameworks */,
 				F4EC42A72F36311500A8AE17 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -193,6 +252,7 @@
 				F4DC09342F5DFC630081712B /* OnsideWatch Watch App.app */,
 				F4DC09402F5DFC640081712B /* OnsideWatch Watch AppTests.xctest */,
 				F4DC094A2F5DFC640081712B /* OnsideWatch Watch AppUITests.xctest */,
+				F4D6D36A2F798DD400452DD2 /* OnsideWidgetExtensionExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -200,6 +260,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		F4D6D3692F798DD400452DD2 /* OnsideWidgetExtensionExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F4D6D37F2F798DD500452DD2 /* Build configuration list for PBXNativeTarget "OnsideWidgetExtensionExtension" */;
+			buildPhases = (
+				F4D6D3662F798DD400452DD2 /* Sources */,
+				F4D6D3672F798DD400452DD2 /* Frameworks */,
+				F4D6D3682F798DD400452DD2 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				F4D6D3702F798DD400452DD2 /* OnsideWidgetExtension */,
+			);
+			name = OnsideWidgetExtensionExtension;
+			packageProductDependencies = (
+			);
+			productName = OnsideWidgetExtensionExtension;
+			productReference = F4D6D36A2F798DD400452DD2 /* OnsideWidgetExtensionExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		F4DC09332F5DFC630081712B /* OnsideWatch Watch App */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = F4DC09552F5DFC640081712B /* Build configuration list for PBXNativeTarget "OnsideWatch Watch App" */;
@@ -276,11 +358,13 @@
 				F4EC42A32F36311500A8AE17 /* Frameworks */,
 				F4EC42A42F36311500A8AE17 /* Resources */,
 				F4DC09582F5DFC640081712B /* Embed Watch Content */,
+				F4D6D3832F798DD500452DD2 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				F4DC09532F5DFC640081712B /* PBXTargetDependency */,
+				F4D6D37D2F798DD500452DD2 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				F4EC42A82F36311500A8AE17 /* Onside */,
@@ -345,9 +429,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2620;
+				LastSwiftUpdateCheck = 2630;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
+					F4D6D3692F798DD400452DD2 = {
+						CreatedOnToolsVersion = 26.3;
+					};
 					F4DC09332F5DFC630081712B = {
 						CreatedOnToolsVersion = 26.2;
 					};
@@ -392,11 +479,19 @@
 				F4DC09332F5DFC630081712B /* OnsideWatch Watch App */,
 				F4DC093F2F5DFC640081712B /* OnsideWatch Watch AppTests */,
 				F4DC09492F5DFC640081712B /* OnsideWatch Watch AppUITests */,
+				F4D6D3692F798DD400452DD2 /* OnsideWidgetExtensionExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		F4D6D3682F798DD400452DD2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F4DC09322F5DFC630081712B /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -442,6 +537,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		F4D6D3662F798DD400452DD2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F4DC09302F5DFC630081712B /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -487,6 +589,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		F4D6D37D2F798DD500452DD2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F4D6D3692F798DD400452DD2 /* OnsideWidgetExtensionExtension */;
+			targetProxy = F4D6D37C2F798DD500452DD2 /* PBXContainerItemProxy */;
+		};
 		F4DC09422F5DFC640081712B /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = F4DC09332F5DFC630081712B /* OnsideWatch Watch App */;
@@ -519,6 +626,71 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		F4D6D3802F798DD500452DD2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4P3Z2K355V;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = OnsideWidgetExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = OnsideWidgetExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = cz.sdrda.Onside.OnsideWidgetExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F4D6D3812F798DD500452DD2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4P3Z2K355V;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = OnsideWidgetExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = OnsideWidgetExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = cz.sdrda.Onside.OnsideWidgetExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 		F4DC09562F5DFC640081712B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1011,6 +1183,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		F4D6D37F2F798DD500452DD2 /* Build configuration list for PBXNativeTarget "OnsideWidgetExtensionExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F4D6D3802F798DD500452DD2 /* Debug */,
+				F4D6D3812F798DD500452DD2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		F4DC09552F5DFC640081712B /* Build configuration list for PBXNativeTarget "OnsideWatch Watch App" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

@@ -32,9 +32,8 @@ struct RinkRenderer {
                       | CGBitmapInfo.byteOrder32Little.rawValue
         ) else { return nil }
 
-        // Škálování: CG pracuje v pixelech, draw() v bodech → aplikuj scale
         ctx.scaleBy(x: scale, y: scale)
-
+        
         // CoreGraphics má Y osu nahoru; otočíme, aby (0,0) bylo vlevo nahoře
         ctx.translateBy(x: 0, y: size.height)
         ctx.scaleBy(x: 1, y: -1)
