@@ -11,8 +11,6 @@ import SwiftUI
 @main
 struct OnsideWidgetExtensionBundle: WidgetBundle {
     var body: some Widget {
-        OnsideWidgetExtension()
-        OnsideWidgetExtensionControl()
         OnsideWidgetExtensionLiveActivity()
     }
 }

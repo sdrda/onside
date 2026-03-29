@@ -10,6 +10,7 @@ final class AppContainer {
     let sessionStorage: any SessionStorageProtocol
     let dataProcessor: any DataProcessorProtocol
     let rinkConfiguration: any RinkConfiguration
+    let liveActivityManager: LiveActivityManager
 
     init(
         sessionStorage: any SessionStorageProtocol = SessionStorage(),
@@ -19,10 +20,11 @@ final class AppContainer {
         self.sessionStorage = sessionStorage
         self.dataProcessor = dataProcessor ?? DataProcessor(sessionStorage: sessionStorage)
         self.rinkConfiguration = rinkConfiguration
+        self.liveActivityManager = LiveActivityManager()
     }
     
     func makeRinkViewModel() -> RinkViewModel {
-        RinkViewModel(dataProcessor: dataProcessor, sessionStorage: sessionStorage)
+        RinkViewModel(dataProcessor: dataProcessor, sessionStorage: sessionStorage, liveActivityManager: liveActivityManager)
     }
     
     func makeAnalyticsViewModel() -> AnalyticsViewModel {

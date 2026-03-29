@@ -9,72 +9,81 @@ import ActivityKit
 import WidgetKit
 import SwiftUI
 
-struct OnsideWidgetExtensionAttributes: ActivityAttributes {
-    public struct ContentState: Codable, Hashable {
-        // Dynamic stateful properties about your activity go here!
-        var emoji: String
-    }
-
-    // Fixed non-changing properties about your activity go here!
-    var name: String
-}
-
 struct OnsideWidgetExtensionLiveActivity: Widget {
     var body: some WidgetConfiguration {
-        ActivityConfiguration(for: OnsideWidgetExtensionAttributes.self) { context in
-            // Lock screen/banner UI goes here
-            VStack {
-                Text("Hello \(context.state.emoji)")
+        ActivityConfiguration(for: RecordingAttributes.self) { context in
+            HStack(spacing: 16) {
+                Image(systemName: "record.circle")
+                    .font(.title2)
+                    .foregroundStyle(.red)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Nahrávání session")
+                        .font(.headline)
+                    Text(context.attributes.startDate, style: .timer)
+                        .font(.system(.title3, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                VStack(spacing: 2) {
+                    Text("\(context.state.playerCount)")
+                        .font(.system(.title, design: .rounded).bold())
+                    Text("hráčů")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
-            .activityBackgroundTint(Color.cyan)
-            .activitySystemActionForegroundColor(Color.black)
+            .padding()
+            .activityBackgroundTint(.black)
+            .activitySystemActionForegroundColor(.white)
 
         } dynamicIsland: { context in
             DynamicIsland {
-                // Expanded UI goes here.  Compose the expanded UI through
-                // various regions, like leading/trailing/center/bottom
                 DynamicIslandExpandedRegion(.leading) {
-                    Text("Leading")
+                    Image(systemName: "record.circle")
+                        .foregroundStyle(.red)
+                        .font(.title2)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    Text("Trailing")
+                    VStack(spacing: 2) {
+                        Text("\(context.state.playerCount)")
+                            .font(.system(.title3, design: .rounded).bold())
+                        Text("hráčů")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                DynamicIslandExpandedRegion(.center) {
+                    Text("Nahrávání session")
+                        .font(.headline)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    Text("Bottom \(context.state.emoji)")
-                    // more content
+                    Text(context.attributes.startDate, style: .timer)
+                        .font(.system(.title2, design: .monospaced))
+                        .frame(maxWidth: .infinity)
+                        .multilineTextAlignment(.center)
                 }
             } compactLeading: {
-                Text("L")
+                Image(systemName: "record.circle")
+                    .foregroundStyle(.red)
             } compactTrailing: {
-                Text("T \(context.state.emoji)")
+                Text(context.attributes.startDate, style: .timer)
+                    .font(.system(.caption, design: .monospaced))
+                    .frame(width: 48)
             } minimal: {
-                Text(context.state.emoji)
+                Image(systemName: "record.circle")
+                    .foregroundStyle(.red)
             }
-            .widgetURL(URL(string: "http://www.apple.com"))
-            .keylineTint(Color.red)
+            .keylineTint(.red)
         }
     }
 }
 
-extension OnsideWidgetExtensionAttributes {
-    fileprivate static var preview: OnsideWidgetExtensionAttributes {
-        OnsideWidgetExtensionAttributes(name: "World")
-    }
-}
-
-extension OnsideWidgetExtensionAttributes.ContentState {
-    fileprivate static var smiley: OnsideWidgetExtensionAttributes.ContentState {
-        OnsideWidgetExtensionAttributes.ContentState(emoji: "😀")
-     }
-     
-     fileprivate static var starEyes: OnsideWidgetExtensionAttributes.ContentState {
-         OnsideWidgetExtensionAttributes.ContentState(emoji: "🤩")
-     }
-}
-
-#Preview("Notification", as: .content, using: OnsideWidgetExtensionAttributes.preview) {
-   OnsideWidgetExtensionLiveActivity()
+#Preview("Notification", as: .content, using: RecordingAttributes(startDate: .now)) {
+    OnsideWidgetExtensionLiveActivity()
 } contentStates: {
-    OnsideWidgetExtensionAttributes.ContentState.smiley
-    OnsideWidgetExtensionAttributes.ContentState.starEyes
+    RecordingAttributes.ContentState(playerCount: 5)
+    RecordingAttributes.ContentState(playerCount: 12)
 }

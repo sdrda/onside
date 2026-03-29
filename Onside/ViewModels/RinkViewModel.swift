@@ -20,11 +20,14 @@ final class RinkViewModel {
     private let dataProcessor: any DataProcessorProtocol
     @ObservationIgnored
     private let sessionStorage: any SessionStorageProtocol
+    @ObservationIgnored
+    private let liveActivityManager: LiveActivityManager
     private let positionScale: Float = 0.01
     
-    init(dataProcessor: any DataProcessorProtocol, sessionStorage: any SessionStorageProtocol) {
+    init(dataProcessor: any DataProcessorProtocol, sessionStorage: any SessionStorageProtocol, liveActivityManager: LiveActivityManager) {
         self.dataProcessor = dataProcessor
         self.sessionStorage = sessionStorage
+        self.liveActivityManager = liveActivityManager
         Task { await dataProcessor.connect() }
         startListening()
     }
@@ -33,8 +36,10 @@ final class RinkViewModel {
         Task {
             if isRecording {
                 await sessionStorage.stopRecording()
+                liveActivityManager.stopLiveActivity()
             } else {
                 await sessionStorage.startRecording()
+                liveActivityManager.startLiveActivity(startDate: Date())
             }
             isRecording = await sessionStorage.isRecording()
             recordedPositionCounts = isRecording ? await sessionStorage.positionCounts() : [:]
@@ -55,6 +60,9 @@ final class RinkViewModel {
                 playerPositions[position.id] = scaled
                 if playerIDs.insert(position.id).inserted {
                     playerCount = playerIDs.count
+                    if isRecording {
+                        liveActivityManager.updatePlayerCount(playerCount)
+                    }
                 }
                 if isRecording {
                     recordedPositionCounts = await sessionStorage.positionCounts()
