@@ -15,11 +15,11 @@ final class AnalyticsViewModel {
     private(set) var isGeneratingImage = false
 
     @ObservationIgnored
-    private let sessionStorage: any SessionStorageProtocol
+    private let sessionStorage: any PositionStore
     @ObservationIgnored
     private let rinkConfig: any RinkConfiguration
 
-    init(sessionStorage: any SessionStorageProtocol, rinkConfig: any RinkConfiguration = IIHFRinkConfiguration.standard) {
+    init(sessionStorage: any PositionStore, rinkConfig: any RinkConfiguration = IIHFRinkConfiguration.standard) {
         self.sessionStorage = sessionStorage
         self.rinkConfig = rinkConfig
         loadPlayers()

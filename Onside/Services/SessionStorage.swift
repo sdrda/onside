@@ -58,4 +58,24 @@ actor SessionStorage: SessionStorageProtocol {
     func heatmapPoints(for playerID: UInt8) -> [(x: CGFloat, y: CGFloat)] {
         playerTracks.first(where: { $0.playerID == playerID })?.heatmapPoints ?? []
     }
+    
+    /// Časový rozsah záznamu (od první do poslední pozice)
+    func timeRange() -> ClosedRange<Date>? {
+        let allPositions = playerTracks.flatMap { $0.positions }
+        guard let first = allPositions.min(by: { $0.timestamp < $1.timestamp }),
+              let last = allPositions.max(by: { $0.timestamp < $1.timestamp }),
+              first.timestamp < last.timestamp else { return nil }
+        return first.timestamp...last.timestamp
+    }
+    
+    /// Pozice všech hráčů nejblíže danému timestampu
+    func positions(at timestamp: Date) -> [UInt8: PlayerPosition] {
+        var result: [UInt8: PlayerPosition] = [:]
+        for track in playerTracks {
+            if let pos = track.position(at: timestamp) {
+                result[track.playerID] = pos
+            }
+        }
+        return result
+    }
 }

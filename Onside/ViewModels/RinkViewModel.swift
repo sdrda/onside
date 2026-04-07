@@ -16,6 +16,8 @@ final class RinkViewModel {
     private(set) var isRecording: Bool = false
     private(set) var recordedPositionCounts: [UInt8: Int] = [:]
     
+    let playback: PlaybackController
+    
     @ObservationIgnored
     private let dataProcessor: any DataProcessorProtocol
     @ObservationIgnored
@@ -28,8 +30,10 @@ final class RinkViewModel {
         self.dataProcessor = dataProcessor
         self.sessionStorage = sessionStorage
         self.liveActivityManager = liveActivityManager
+        self.playback = PlaybackController(sessionStorage: sessionStorage)
         Task { await dataProcessor.connect() }
         startListening()
+        setupPlaybackCallback()
     }
     
     func toggleRecording() {
@@ -37,12 +41,40 @@ final class RinkViewModel {
             if isRecording {
                 await sessionStorage.stopRecording()
                 liveActivityManager.stopLiveActivity()
+                await playback.loadTimeRange()
             } else {
+                playback.stop()
                 await sessionStorage.startRecording()
                 liveActivityManager.startLiveActivity(startDate: Date())
             }
             isRecording = await sessionStorage.isRecording()
             recordedPositionCounts = isRecording ? await sessionStorage.positionCounts() : [:]
+        }
+    }
+    
+    func getCurrentPlayers() -> [UInt8] {
+        playerIDs.sorted()
+    }
+    
+    // MARK: - Private
+    
+    private func setupPlaybackCallback() {
+        playback.onPositionsChanged = { [weak self] positions in
+            guard let self else { return }
+            var newPositions: [UInt8: SIMD3<Float>] = [:]
+            var ids: Set<UInt8> = []
+            for (id, pos) in positions {
+                let scaled = SIMD3<Float>(
+                    Float(pos.x) * self.positionScale,
+                    0.01,
+                    Float(pos.y) * self.positionScale
+                )
+                newPositions[id] = scaled
+                ids.insert(id)
+            }
+            self.playerPositions = newPositions
+            self.playerIDs = ids
+            self.playerCount = ids.count
         }
     }
     
@@ -52,6 +84,8 @@ final class RinkViewModel {
             let stream = dataProcessor.positions
             for await position in stream {
                 guard !Task.isCancelled else { break }
+                // V režimu replay ignorujeme živá data
+                guard !playback.isActive else { continue }
                 let scaled = SIMD3<Float>(
                     Float(position.x) * positionScale,
                     0.01,

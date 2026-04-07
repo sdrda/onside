@@ -22,13 +22,13 @@ struct MainView: View {
                 }
             }
             Tab("Hráči", systemImage: "person") {
-                PairingView()
+                PlayerListView()
             }
             Tab("Skupiny", systemImage: "person.3") {
-                PairingView()
+                GroupListView()
             }
             Tab("Nastavení", systemImage: "gearshape") {
-                PairingView()
+                PlayerListView()
             }
         }
         .tabViewStyle(.sidebarAdaptable)

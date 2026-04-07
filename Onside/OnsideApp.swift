@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct OnsideApp: App {
@@ -15,6 +16,7 @@ struct OnsideApp: App {
         WindowGroup {
             MainView()
                 .environment(\.container, container)
+                .modelContainer(for: [Player.self, PlayerGroup.self])
         }
     }
 }

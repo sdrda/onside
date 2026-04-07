@@ -9,31 +9,133 @@ import SwiftUI
 
 struct RinkView: View {
     @Environment(\.container) private var container
+    @State var inspectorPresented: Bool = false
     @State var rink: RinkViewModel
     let config: any RinkConfiguration
+    
+    private var playback: PlaybackController { rink.playback }
 
     var body: some View {
-        ZStack {
-            RealityRinkView(rinkViewModel: rink, config: config)
-
-            VStack {
-                Spacer()
-
-                HStack(alignment: .bottom) {
-                    RecordButton(isRecording: rink.isRecording) {
-                        rink.toggleRecording()
+        NavigationStack {
+            ZStack {
+                RealityRinkView(rinkViewModel: rink, config: config)
+                
+                VStack {
+                    Spacer()
+                    
+                    // Playback ovládání
+                    if playback.isActive {
+                        playbackControls
+                            .padding(.horizontal)
+                            .padding(.bottom, 4)
+                    }
+                    
+                    HStack(alignment: .bottom) {
+                        RecordButton(isRecording: rink.isRecording) {
+                            rink.toggleRecording()
+                        }
+                        
+                        // Tlačítko pro vstup do replay po záznamu
+                        if !rink.isRecording && playback.timeRange != nil && !playback.isActive {
+                            Button {
+                                playback.enter()
+                            } label: {
+                                Label("Přehrát", systemImage: "play.circle.fill")
+                                    .font(.headline)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .tint(.orange)
+                        }
+                        
+                        // Tlačítko pro ukončení replay
+                        if playback.isActive {
+                            Button {
+                                playback.stop()
+                            } label: {
+                                Label("Živě", systemImage: "antenna.radiowaves.left.and.right")
+                                    .font(.headline)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .tint(.green)
+                        }
+                    }
+                    .padding()
+                }
+            }
+            .inspector(isPresented: $inspectorPresented) {
+                VStack {
+                    List {
+                        Section(header: Text("Aktivní hráči (\(rink.playerCount))")) {
+                            ForEach(rink.getCurrentPlayers(), id: \.self) { playerID in
+                                HStack {
+                                    Image(systemName: "person.circle.fill")
+                                        .foregroundColor(.blue)
+                                    
+                                    Text("Hráč ID: \(playerID)")
+                                        .font(.headline)
+                                }
+                            }
+                        }
                     }
                 }
-                .padding()
+                .inspectorColumnWidth(min: 200, ideal: 300, max: 400)
             }
-        }
-        .navigationTitle("Hřiště živě")
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                NavigationLink(destination: AnalyticsView(viewModel: container.makeAnalyticsViewModel())) {
-                    Label("Analýza", systemImage: "chart.bar.xaxis")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            inspectorPresented.toggle()
+                        }
+                    } label: {
+                        Label(
+                            inspectorPresented ? "Zavřít" : "Detail hráčů",
+                            systemImage: inspectorPresented ? "xmark.circle.fill" : "person.circle"
+                        )
+                        .symbolVariant(.fill)
+                        .contentTransition(.symbolEffect(.replace))
+                    }
                 }
             }
         }
+    }
+    
+    // MARK: - Playback UI
+    
+    private var playbackControls: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Button {
+                    playback.togglePlayback()
+                } label: {
+                    Image(systemName: playback.isPlaying ? "pause.fill" : "play.fill")
+                        .font(.title2)
+                        .contentTransition(.symbolEffect(.replace))
+                }
+                .buttonStyle(.bordered)
+                
+                Slider(
+                    value: Binding(
+                        get: { playback.progress },
+                        set: { playback.seek(to: $0) }
+                    ),
+                    in: 0...1
+                )
+                
+                if let current = playback.currentTime {
+                    Text(formatTime(current))
+                        .monospacedDigit()
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding(12)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+    
+    private func formatTime(_ seconds: TimeInterval) -> String {
+        let mins = Int(seconds) / 60
+        let secs = Int(seconds) % 60
+        return String(format: "%d:%02d", mins, secs)
     }
 }
