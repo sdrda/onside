@@ -9,17 +9,18 @@ import SwiftUI
 
 struct MainView: View {
     
-    @Environment(\.container) private var container
-    @State private var rinkViewModel: RinkViewModel?
+    let container: AppContainer
+    @State private var rinkViewModel: RinkViewModel
+    
+    init(container: AppContainer) {
+        self.container = container
+        self._rinkViewModel = State(wrappedValue: container.makeRinkViewModel())
+    }
     
     var body: some View {
         TabView {
             Tab("Hřiště", systemImage: "sportscourt") {
-                if let rinkViewModel {
-                    RinkView(rink: rinkViewModel, config: container.rinkConfiguration)
-                } else {
-                    ProgressView()
-                }
+                RinkView(rink: rinkViewModel, config: container.rinkConfiguration)
             }
             Tab("Hráči", systemImage: "person") {
                 PlayerListView()
@@ -32,17 +33,5 @@ struct MainView: View {
             }
         }
         .tabViewStyle(.sidebarAdaptable)
-        .onAppear {
-            if rinkViewModel == nil {
-                rinkViewModel = container.makeRinkViewModel()
-            }
-        }
-    }
-}
-
-struct MainView_Previews: PreviewProvider {
-    @available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
-    static var previews: some View {
-        MainView()
     }
 }

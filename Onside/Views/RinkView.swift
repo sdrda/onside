@@ -8,7 +8,6 @@
 import SwiftUI
 
 struct RinkView: View {
-    @Environment(\.container) private var container
     @State var inspectorPresented: Bool = false
     @State var rink: RinkViewModel
     let config: any RinkConfiguration

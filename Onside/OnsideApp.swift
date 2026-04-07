@@ -14,20 +14,9 @@ struct OnsideApp: App {
     
     var body: some Scene {
         WindowGroup {
-            MainView()
-                .environment(\.container, container)
+            MainView(container: container)
                 .modelContainer(for: [Player.self, PlayerGroup.self])
         }
     }
 }
 
-private struct AppContainerKey: EnvironmentKey {
-    nonisolated(unsafe) static var defaultValue = AppContainer()
-}
-
-extension EnvironmentValues {
-    var container: AppContainer {
-        get { self[AppContainerKey.self] }
-        set { self[AppContainerKey.self] = newValue }
-    }
-}

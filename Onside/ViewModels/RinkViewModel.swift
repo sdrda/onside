@@ -16,6 +16,11 @@ final class RinkViewModel {
     private(set) var isRecording: Bool = false
     private(set) var recordedPositionCounts: [UInt8: Int] = [:]
     
+    /// Barva válce pro každého hráče podle aktivních skupin
+    var playerColors: [UInt8: UIColor] = [:]
+    /// Popisek na válci — číslo dresu pokud hráč existuje v DB
+    var playerLabels: [UInt8: String] = [:]
+    
     let playback: PlaybackController
     
     @ObservationIgnored

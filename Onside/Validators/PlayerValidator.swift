@@ -18,9 +18,6 @@ struct PlayerValidator {
         if id.isEmpty {
             return "Zadej ID senzoru"
         }
-        if id.count < 5 {
-            return "ID musí mít alespoň 5 znaků"
-        }
         return nil
     }
 }
