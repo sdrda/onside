@@ -9,6 +9,9 @@ import SwiftUI
 import SwiftData
 import PhotosUI
 
+#if os(iOS)
+import UIKit
+
 extension UIImage {
     func croppedToSquare() -> UIImage? {
         let side = min(size.width, size.height)
@@ -22,6 +25,28 @@ extension UIImage {
         return UIImage(cgImage: cgImage, scale: scale, orientation: imageOrientation)
     }
 }
+#elseif os(macOS)
+import AppKit
+
+extension NSImage {
+    func croppedToSquare() -> NSImage? {
+        let side = min(size.width, size.height)
+        let rect = NSRect(x: (size.width - side) / 2, y: (size.height - side) / 2, width: side, height: side)
+        let img = NSImage(size: NSSize(width: side, height: side))
+        img.lockFocus()
+        self.draw(in: NSRect(origin: .zero, size: img.size), from: rect, operation: .copy, fraction: 1.0)
+        img.unlockFocus()
+        return img
+    }
+    
+    // NSImage nemá v základu jpegData(), musíme to přidat
+    func jpegData(compressionQuality: CGFloat) -> Data? {
+        guard let tiffRepresentation = self.tiffRepresentation,
+              let bitmapImage = NSBitmapImageRep(data: tiffRepresentation) else { return nil }
+        return bitmapImage.representation(using: .jpeg, properties: [.compressionFactor: compressionQuality])
+    }
+}
+#endif
 
 struct AddPlayerForm: View {
     @Environment(\.modelContext) private var modelContext
@@ -30,14 +55,18 @@ struct AddPlayerForm: View {
     var player: Player?
     
     @State var name: String = String()
-    @State var sensorId: String = String()
+    @State var sensorIdText: String = ""
     @State var selectedNumber: Int = 1
     @State var selectedItem: PhotosPickerItem? = nil
     @State var profileImage: Image? = nil
     @State var profileImageData: Data? = nil
     
+    private var parsedSensorId: UInt8? {
+        UInt8(sensorIdText)
+    }
+    
     var isFormValid: Bool {
-        PlayerValidator.validateSensorId(sensorId) == nil &&
+        parsedSensorId != nil &&
         PlayerValidator.validateName(name) == nil
     }
 
@@ -65,17 +94,20 @@ struct AddPlayerForm: View {
                         .onChange(of: selectedItem) { _, newItem in
                             guard let newItem else { return }
                             Task {
-                                guard let data = try? await newItem.loadTransferable(type: Data.self),
-                                      let uiImage = UIImage(data: data) else { return }
-
-                                // Ořízneme obrázek na čtverec
+                                guard let data = try? await newItem.loadTransferable(type: Data.self) else { return }
+                                
+                                #if os(iOS)
+                                guard let uiImage = UIImage(data: data) else { return }
                                 let cropped = uiImage.croppedToSquare()
-                                
-                                // Provedeme kompresy
                                 profileImageData = cropped?.jpegData(compressionQuality: 0.8)
-                                
-                                // Uložíme profilový obrázek
                                 profileImage = Image(uiImage: cropped ?? uiImage)
+                                
+                                #elseif os(macOS)
+                                guard let nsImage = NSImage(data: data) else { return }
+                                let cropped = nsImage.croppedToSquare()
+                                profileImageData = cropped?.jpegData(compressionQuality: 0.8)
+                                profileImage = Image(nsImage: cropped ?? nsImage)
+                                #endif
                             }
                         }
                         Spacer()
@@ -84,9 +116,13 @@ struct AddPlayerForm: View {
                 .listRowBackground(Color.clear)
                 
                 Section("Informace") {
-                    TextField("Senzor", text: $sensorId)
-                    if let error = PlayerValidator.validateSensorId(sensorId), !sensorId.isEmpty {
-                        Text(error)
+                    TextField("Senzor (0–255)", text: $sensorIdText)
+                        #if os(iOS)
+                        .keyboardType(.numberPad) // Na macOS neexistuje
+                        #endif
+                        
+                    if !sensorIdText.isEmpty && parsedSensorId == nil {
+                        Text("Zadej číslo 0–255")
                             .font(.caption)
                             .foregroundStyle(.red)
                     }
@@ -106,7 +142,8 @@ struct AddPlayerForm: View {
                 }
             }
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                // Rovnou nahrazeno za sémantické placementy, jak jsme řešili minule
+                ToolbarItem(placement: .cancellationAction) {
                     Button("Zrušit") {
                         dismiss()
                     }
@@ -114,7 +151,7 @@ struct AddPlayerForm: View {
                 ToolbarItem(placement: .principal) {
                     Text(player == nil ? "Přidat hráče" : "Upravit hráče")
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .confirmationAction) {
                     Button("Uložit") {
                         withAnimation {
                             save()
@@ -128,13 +165,14 @@ struct AddPlayerForm: View {
         .onAppear {
             if let player {
                 name = player.name
-                sensorId = player.sensorId
+                sensorIdText = String(player.sensorId)
                 selectedNumber = player.jerseyNumber
             }
         }
     }
     
     private func save() {
+        guard let sensorId = parsedSensorId else { return }
         let photoUrl = savePhoto()
 
         if let player {

@@ -14,8 +14,8 @@ struct PlayerValidator {
         return nil
     }
 
-    static func validateSensorId(_ id: String) -> String? {
-        if id.isEmpty {
+    static func validateSensorId(_ id: UInt8?) -> String? {
+        if id == nil {
             return "Zadej ID senzoru"
         }
         return nil

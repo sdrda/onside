@@ -6,32 +6,38 @@
 //
 
 import SwiftUI
+import PencilKit
 
 struct MainView: View {
     
+    @Environment(\.modelContext) private var modelContext
     let container: AppContainer
-    @State private var rinkViewModel: RinkViewModel
-    
-    init(container: AppContainer) {
-        self.container = container
-        self._rinkViewModel = State(wrappedValue: container.makeRinkViewModel())
-    }
+    @State private var rinkViewModel: RinkViewModel?
     
     var body: some View {
-        TabView {
-            Tab("Hřiště", systemImage: "sportscourt") {
-                RinkView(rink: rinkViewModel, config: container.rinkConfiguration)
-            }
-            Tab("Hráči", systemImage: "person") {
-                PlayerListView()
-            }
-            Tab("Skupiny", systemImage: "person.3") {
-                GroupListView()
-            }
-            Tab("Nastavení", systemImage: "gearshape") {
-                PlayerListView()
+        Group {
+            if let rinkViewModel {
+                TabView {
+                    Tab("Hřiště", systemImage: "sportscourt") {
+                        RinkView(rink: rinkViewModel, config: container.rinkConfiguration)
+                    }
+                    Tab("Hráči", systemImage: "person") {
+                        PlayerListView()
+                    }
+                    Tab("Skupiny", systemImage: "person.3") {
+                        GroupListView()
+                    }
+                    Tab("Nastavení", systemImage: "gearshape") {
+                        PlayerListView()
+                    }
+                }
+                .tabViewStyle(.sidebarAdaptable)
             }
         }
-        .tabViewStyle(.sidebarAdaptable)
+        .onAppear {
+            if rinkViewModel == nil {
+                rinkViewModel = container.makeRinkViewModel(modelContext: modelContext)
+            }
+        }
     }
 }

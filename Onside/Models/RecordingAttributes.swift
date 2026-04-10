@@ -8,6 +8,7 @@
 import ActivityKit
 import Foundation
 
+#if os(iOS)
 struct RecordingAttributes: ActivityAttributes {
     struct ContentState: Codable, Hashable {
         var playerCount: Int
@@ -15,3 +16,4 @@ struct RecordingAttributes: ActivityAttributes {
 
     var startDate: Date
 }
+#endif

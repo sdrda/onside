@@ -6,35 +6,42 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @Observable
 @MainActor
 final class RinkViewModel {
-    private(set) var playerCount: Int = 0
     private(set) var playerIDs: Set<UInt8> = []
+    
+    // Aktuální pozice hráčů
     private(set) var playerPositions: [UInt8: SIMD3<Float>] = [:]
+    
     private(set) var isRecording: Bool = false
     private(set) var recordedPositionCounts: [UInt8: Int] = [:]
-    
-    /// Barva válce pro každého hráče podle aktivních skupin
-    var playerColors: [UInt8: UIColor] = [:]
+
     /// Popisek na válci — číslo dresu pokud hráč existuje v DB
     var playerLabels: [UInt8: String] = [:]
+    /// ID aktivních skupin
+    var activeGroupIDs: Set<PersistentIdentifier> = []
     
     let playback: PlaybackController
+     
+    @ObservationIgnored private let modelContext: ModelContext
+    @ObservationIgnored private let dataProcessor: any DataProcessorProtocol
+    @ObservationIgnored private let sessionStorage: any SessionStorageProtocol
     
-    @ObservationIgnored
-    private let dataProcessor: any DataProcessorProtocol
-    @ObservationIgnored
-    private let sessionStorage: any SessionStorageProtocol
-    @ObservationIgnored
-    private let liveActivityManager: LiveActivityManager
+    @ObservationIgnored private var listeningTask: Task<Void, Never>? = nil
+    
     private let positionScale: Float = 0.01
     
-    init(dataProcessor: any DataProcessorProtocol, sessionStorage: any SessionStorageProtocol, liveActivityManager: LiveActivityManager) {
+    var playerCount: Int {
+        playerIDs.count
+    }
+    
+    init(modelContext: ModelContext, dataProcessor: any DataProcessorProtocol, sessionStorage: any SessionStorageProtocol) {
+        self.modelContext = modelContext
         self.dataProcessor = dataProcessor
         self.sessionStorage = sessionStorage
-        self.liveActivityManager = liveActivityManager
         self.playback = PlaybackController(sessionStorage: sessionStorage)
         Task { await dataProcessor.connect() }
         startListening()
@@ -45,12 +52,10 @@ final class RinkViewModel {
         Task {
             if isRecording {
                 await sessionStorage.stopRecording()
-                liveActivityManager.stopLiveActivity()
                 await playback.loadTimeRange()
             } else {
                 playback.stop()
                 await sessionStorage.startRecording()
-                liveActivityManager.startLiveActivity(startDate: Date())
             }
             isRecording = await sessionStorage.isRecording()
             recordedPositionCounts = isRecording ? await sessionStorage.positionCounts() : [:]
@@ -61,6 +66,25 @@ final class RinkViewModel {
         playerIDs.sorted()
     }
     
+    // MARK: - Groups
+    
+    func fetchGroups() -> [PlayerGroup] {
+        let descriptor = FetchDescriptor<PlayerGroup>(sortBy: [SortDescriptor(\.name)])
+        return (try? modelContext.fetch(descriptor)) ?? []
+    }
+    
+    func toggleGroup(_ group: PlayerGroup) {
+        if activeGroupIDs.contains(group.persistentModelID) {
+            activeGroupIDs.remove(group.persistentModelID)
+        } else {
+            activeGroupIDs.insert(group.persistentModelID)
+        }
+    }
+    
+    func isGroupActive(_ group: PlayerGroup) -> Bool {
+        activeGroupIDs.contains(group.persistentModelID)
+    }
+    
     // MARK: - Private
     
     private func setupPlaybackCallback() {
@@ -69,44 +93,36 @@ final class RinkViewModel {
             var newPositions: [UInt8: SIMD3<Float>] = [:]
             var ids: Set<UInt8> = []
             for (id, pos) in positions {
-                let scaled = SIMD3<Float>(
-                    Float(pos.x) * self.positionScale,
-                    0.01,
-                    Float(pos.y) * self.positionScale
-                )
-                newPositions[id] = scaled
+                newPositions[id] = pos.scaledPosition(scale: self.positionScale)
                 ids.insert(id)
             }
             self.playerPositions = newPositions
             self.playerIDs = ids
-            self.playerCount = ids.count
         }
     }
     
     private func startListening() {
-        Task { [weak self] in
+        listeningTask = Task { [weak self] in
             guard let self else { return }
-            let stream = dataProcessor.positions
+            
+            let stream = self.dataProcessor.positions
+
+            // Odbavujeme asynchronní stream pozičních dat
             for await position in stream {
                 guard !Task.isCancelled else { break }
+                
                 // V režimu replay ignorujeme živá data
-                guard !playback.isActive else { continue }
-                let scaled = SIMD3<Float>(
-                    Float(position.x) * positionScale,
-                    0.01,
-                    Float(position.y) * positionScale
-                )
-                playerPositions[position.id] = scaled
-                if playerIDs.insert(position.id).inserted {
-                    playerCount = playerIDs.count
-                    if isRecording {
-                        liveActivityManager.updatePlayerCount(playerCount)
-                    }
-                }
-                if isRecording {
-                    recordedPositionCounts = await sessionStorage.positionCounts()
-                }
+                guard !self.playback.isActive else { continue }
+                
+                self.playerPositions[position.id] = position.scaledPosition(scale: self.positionScale)
+                
+                self.playerIDs.insert(position.id)
             }
         }
+    }
+    
+    // Při zániku zavřeme asynchronní úkol
+    deinit {
+        listeningTask?.cancel()
     }
 }

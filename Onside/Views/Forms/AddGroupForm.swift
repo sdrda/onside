@@ -81,15 +81,17 @@ struct AddGroupForm: View {
                 }
             }
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .cancellationAction) {
                     Button("Zrušit") {
                         dismiss()
                     }
                 }
+                
                 ToolbarItem(placement: .principal) {
                     Text(group == nil ? "Nová skupina" : "Upravit skupinu")
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                
+                ToolbarItem(placement: .confirmationAction) {
                     Button("Uložit") {
                         withAnimation {
                             save()

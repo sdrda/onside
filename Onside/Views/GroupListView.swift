@@ -39,18 +39,19 @@ struct GroupListView: View {
             }
             .navigationTitle("Skupiny")
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showAddSheet = true
-                    } label: {
+                // Tlačítko pro přidání (funguje všude)
+                ToolbarItem(placement: .primaryAction) {
+                    Button(action: { showAddSheet = true }) {
                         Image(systemName: "plus")
                     }
                 }
-                if !groups.isEmpty {
-                    ToolbarItem(placement: .topBarLeading) {
-                        EditButton()
-                    }
+                
+                // Tlačítko pro úpravy (pouze pro iOS)
+                #if os(iOS)
+                ToolbarItem(placement: .topBarLeading) {
+                    EditButton()
                 }
+                #endif
             }
         }
         .sheet(isPresented: $showAddSheet) {

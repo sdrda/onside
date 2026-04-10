@@ -5,12 +5,14 @@
 //  Created by Šimon Drda on 16.03.2026.
 //
 
+import SwiftData
+
 final class AppContainer {
 
     let sessionStorage: any SessionStorageProtocol
     let dataProcessor: any DataProcessorProtocol
     let rinkConfiguration: any RinkConfiguration
-    let liveActivityManager: LiveActivityManager
+    //let liveActivityManager: LiveActivityManager
 
     init(
         sessionStorage: any SessionStorageProtocol = SessionStorage(),
@@ -20,11 +22,11 @@ final class AppContainer {
         self.sessionStorage = sessionStorage
         self.dataProcessor = dataProcessor ?? DataProcessor(sessionStorage: sessionStorage)
         self.rinkConfiguration = rinkConfiguration
-        self.liveActivityManager = LiveActivityManager()
+        //self.liveActivityManager = LiveActivityManager()
     }
     
-    func makeRinkViewModel() -> RinkViewModel {
-        RinkViewModel(dataProcessor: dataProcessor, sessionStorage: sessionStorage, liveActivityManager: liveActivityManager)
+    func makeRinkViewModel(modelContext: ModelContext) -> RinkViewModel {
+        RinkViewModel(modelContext: modelContext, dataProcessor: dataProcessor, sessionStorage: sessionStorage)
     }
     
     func makeAnalyticsViewModel() -> AnalyticsViewModel {

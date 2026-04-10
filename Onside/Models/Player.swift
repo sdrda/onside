@@ -10,7 +10,7 @@ import Foundation
 
 @Model
 class Player {
-    @Attribute(.unique) var sensorId: String
+    @Attribute(.unique) var sensorId: UInt8
     var name: String
     var jerseyNumber: Int
     var photoUrl: URL?
@@ -19,7 +19,7 @@ class Player {
     var groups: [PlayerGroup] = []
 
     init(
-        sensorId: String,
+        sensorId: UInt8,
         name: String,
         jerseyNumber: Int,
         photoUrl: URL? = nil,

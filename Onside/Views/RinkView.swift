@@ -6,9 +6,11 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct RinkView: View {
     @State var inspectorPresented: Bool = false
+    @State var isDrawing: Bool = false
     @State var rink: RinkViewModel
     let config: any RinkConfiguration
     
@@ -17,7 +19,7 @@ struct RinkView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                RealityRinkView(rinkViewModel: rink, config: config)
+                RealityRinkView(isDrawing: $isDrawing, rinkViewModel: rink, config: config)
                 
                 VStack {
                     Spacer()
@@ -30,9 +32,17 @@ struct RinkView: View {
                     }
                     
                     HStack(alignment: .bottom) {
-                        RecordButton(isRecording: rink.isRecording) {
+                        Button {
                             rink.toggleRecording()
+                        } label: {
+                            Label(
+                                rink.isRecording ? "Zastavit" : "Nahrávat",
+                                systemImage: rink.isRecording ? "stop.circle.fill" : "record.circle"
+                            )
+                            .font(.headline)
                         }
+                        .buttonStyle(.borderedProminent)
+                        .tint(rink.isRecording ? .red : .blue)
                         
                         // Tlačítko pro vstup do replay po záznamu
                         if !rink.isRecording && playback.timeRange != nil && !playback.isActive {
@@ -80,6 +90,40 @@ struct RinkView: View {
                 .inspectorColumnWidth(min: 200, ideal: 300, max: 400)
             }
             .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        isDrawing.toggle()
+                    } label: {
+                        Label(
+                            isDrawing ? "Nekreslit" : "Kreslit",
+                            systemImage: isDrawing ? "pencil.slash" : "pencil"
+                        )
+                        .contentTransition(.symbolEffect(.replace))
+                    }
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Menu {
+                        let groups = rink.fetchGroups()
+                        if groups.isEmpty {
+                            Text("Žádné skupiny")
+                        } else {
+                            ForEach(groups, id: \.persistentModelID) { group in
+                                Button {
+                                    rink.toggleGroup(group)
+                                } label: {
+                                    Label(
+                                        group.name,
+                                        systemImage: rink.isGroupActive(group)
+                                            ? "checkmark.circle.fill"
+                                            : "circle"
+                                    )
+                                }
+                            }
+                        }
+                    } label: {
+                        Label("Skupiny", systemImage: "person.3")
+                    }
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {

@@ -42,19 +42,22 @@ struct PlayerListView: View {
             
             
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showAddSheet = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                }
-                if !players.isEmpty {
-                    ToolbarItem(placement: .topBarLeading) {
-                        EditButton()
-                    }
-                }
-            }
+                            ToolbarItem(placement: .primaryAction) {
+                                Button {
+                                    showAddSheet = true
+                                } label: {
+                                    Image(systemName: "plus")
+                                }
+                            }
+                            
+                            #if os(iOS)
+                            if !players.isEmpty {
+                                ToolbarItem(placement: .topBarLeading) {
+                                    EditButton()
+                                }
+                            }
+                            #endif
+                        }
         }
         // Přidat nového hráče
         .sheet(isPresented: $showAddSheet) {

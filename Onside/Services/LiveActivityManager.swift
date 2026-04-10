@@ -5,6 +5,7 @@
 //  Created by Šimon Drda on 29.03.2026.
 //
 
+/*
 import ActivityKit
 import Foundation
 
@@ -52,3 +53,4 @@ final class LiveActivityManager {
         self.activity = nil
     }
 }
+*/
