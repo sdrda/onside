@@ -16,6 +16,8 @@ struct CanvasView: View {
         PencilCaptureViewWrapper(onMove: onMove, onLift: onLift)
         #elseif os(macOS)
         MacPencilCaptureViewWrapper(onMove: onMove, onLift: onLift)
+        #elseif(os(tvOS))
+            EmptyView()
         #endif
     }
 }
