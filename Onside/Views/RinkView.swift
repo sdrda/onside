@@ -139,6 +139,7 @@ struct RinkView: View {
                     }
                 }
             }
+            .focusedSceneValue(\.isDrawingBinding, $isDrawing)
         }
     }
     

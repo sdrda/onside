@@ -17,6 +17,10 @@ struct OnsideApp: App {
             MainView(container: container)
                 .modelContainer(for: [Player.self, PlayerGroup.self])
         }
+        .commands {
+            TabCommands()
+            DrawingCommands()
+        }
     }
 }
 

@@ -6,32 +6,43 @@
 //
 
 import SwiftUI
-import PencilKit
 
 struct MainView: View {
-    
     @Environment(\.modelContext) private var modelContext
     let container: AppContainer
     @State private var rinkViewModel: RinkViewModel?
+    @State private var selectedTab: AppTab = .rink
     
     var body: some View {
         Group {
             if let rinkViewModel {
-                TabView {
-                    Tab("Hřiště", systemImage: "sportscourt") {
-                        RinkView(rink: rinkViewModel, config: container.rinkConfiguration)
-                    }
-                    Tab("Hráči", systemImage: "person") {
-                        PlayerListView()
-                    }
-                    Tab("Skupiny", systemImage: "person.3") {
-                        GroupListView()
-                    }
-                    Tab("Nastavení", systemImage: "gearshape") {
-                        PlayerListView()
-                    }
+                TabView(selection: $selectedTab) {
+                    RinkView(rink: rinkViewModel, config: container.rinkConfiguration)
+                        .tabItem {
+                            Label("Hřiště", systemImage: "sportscourt")
+                        }
+                        .tag(AppTab.rink)
+                    
+                    PlayerListView()
+                        .tabItem {
+                            Label("Hráči", systemImage: "person")
+                        }
+                        .tag(AppTab.players)
+                    
+                    GroupListView()
+                        .tabItem {
+                            Label("Skupiny", systemImage: "person.3")
+                        }
+                        .tag(AppTab.groups)
+                    
+                    Text("Nastavení")
+                        .tabItem {
+                            Label("Nastavení", systemImage: "gearshape")
+                        }
+                        .tag(AppTab.settings)
                 }
                 .tabViewStyle(.sidebarAdaptable)
+                .focusedSceneValue(\.selectedTab, $selectedTab)
             }
         }
         .onAppear {
