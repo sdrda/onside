@@ -10,23 +10,17 @@ import Foundation
 
 @Model
 class Player {
-    @Attribute(.unique) var sensorId: UInt8
-    var name: String
-    var jerseyNumber: Int
-    var photoUrl: URL?
+    var id = UUID()
+    var sensorId: Int = 0
+    var name: String = ""
+    var jerseyNumber: Int = 0
 
     @Relationship(deleteRule: .nullify, inverse: \PlayerGroup.players)
-    var groups: [PlayerGroup] = []
-
-    init(
-        sensorId: UInt8,
-        name: String,
-        jerseyNumber: Int,
-        photoUrl: URL? = nil,
-    ) {
+    var groups: [PlayerGroup]?
+    
+    init(sensorId: Int, name: String, jerseyNumber: Int) {
         self.sensorId = sensorId
         self.name = name
         self.jerseyNumber = jerseyNumber
-        self.photoUrl = photoUrl
     }
 }

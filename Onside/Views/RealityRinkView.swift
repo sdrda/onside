@@ -6,19 +6,19 @@
 import SwiftUI
 import RealityKit
 
+import SwiftUI
+import RealityKit
+
 struct RealityRinkView: View {
     @State private var cachedRinkImage: CGImage? = nil
-    @State private var drawingContext: CGContext? = nil
-    @State private var textureResource: TextureResource? = nil
     @State private var rinkEntity: ModelEntity? = nil
-    @State private var lastDrawPoint: CGPoint? = nil
-
-    // Uložíme si RealityView frame pro přepočet souřadnic
     @State private var realityViewFrame: CGRect = .zero
+    @State private var cameraEntity: Entity = Entity()
+    
+    @State private var drawingUtility = RinkDrawingUtility()
 
     let config: any RinkConfiguration
     var rinkViewModel: RinkViewModel
-    @State private var cameraEntity: Entity = Entity()
 
     @Binding var isDrawing: Bool
 
@@ -57,33 +57,32 @@ struct RealityRinkView: View {
             )
 
             if isDrawing {
-                CanvasView(
+                InputCaptureView(
                     onMove: { screenPoint, force in
                         handlePencilInput(at: screenPoint, force: force)
                     },
                     onLift: {
-                        lastDrawPoint = nil
+                        drawingUtility.resetLift()
                     }
                 )
-                .onAppear { setupDrawingTextureIfNeeded() }
+                .onAppear {
+                    drawingUtility.setupDrawingTextureIfNeeded(baseImage: cachedRinkImage)
+                }
             }
         }
         .onChange(of: isDrawing) { _, newValue in
-            if !newValue { lastDrawPoint = nil }
+            if !newValue { drawingUtility.resetLift() }
         }
     }
 
     // MARK: - Pencil & UV výpočet
 
     private func handlePencilInput(at screenPoint: CGPoint, force: Float) {
-        // Přepočítáme souřadnice dotyku na plochu ledu
         let uv = screenPointToRinkUV(screenPoint: screenPoint)
         guard let uv else { return }
-
-        drawOnTexture(at: uv, force: force)
+        drawingUtility.draw(at: uv, force: force)
     }
 
-    /// Přepočítá 2D screen point na UV souřadnici rink plane (Y=0).
     private func screenPointToRinkUV(screenPoint: CGPoint) -> CGPoint? {
         let viewWidth = Float(realityViewFrame.width)
         let viewHeight = Float(realityViewFrame.height)
@@ -127,74 +126,6 @@ struct RealityRinkView: View {
         return CGPoint(x: CGFloat(textureU), y: CGFloat(textureV))
     }
 
-    // MARK: - Drawing do textury
-
-    private func setupDrawingTextureIfNeeded() {
-        guard drawingContext == nil else { return }
-
-        let width = 2048
-        let height = 1024
-
-        guard let ctx = CGContext(
-            data: nil,
-            width: width,
-            height: height,
-            bitsPerComponent: 8,
-            bytesPerRow: 0,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        ) else { return }
-
-        if let base = cachedRinkImage {
-            ctx.draw(base, in: CGRect(x: 0, y: 0, width: width, height: height))
-        }
-
-        drawingContext = ctx
-    }
-
-    private func drawOnTexture(at uv: CGPoint, force: Float) {
-        guard let ctx = drawingContext else { return }
-
-        let w = CGFloat(ctx.width)
-        let h = CGFloat(ctx.height)
-
-        let x = uv.x * w
-        let y = uv.y * h
-        let radius = CGFloat(2 + force * 8)
-
-        #if os(iOS)
-        let drawColor = UIColor.red.withAlphaComponent(0.85).cgColor
-        #elseif os(macOS)
-        let drawColor = NSColor.red.withAlphaComponent(0.85).cgColor
-        #endif
-
-        if let last = lastDrawPoint {
-            ctx.setStrokeColor(drawColor)
-            ctx.setLineWidth(radius * 2)
-            ctx.setLineCap(.round)
-            ctx.move(to: last)
-            ctx.addLine(to: CGPoint(x: x, y: y))
-            ctx.strokePath()
-        } else {
-            ctx.setFillColor(drawColor)
-            ctx.fillEllipse(in: CGRect(
-                x: x - radius, y: y - radius,
-                width: radius * 2, height: radius * 2
-            ))
-        }
-
-        lastDrawPoint = CGPoint(x: x, y: y)
-
-        if let image = ctx.makeImage() {
-            Task {
-                try? await textureResource?.replace(
-                    withImage: image,
-                    options: .init(semantic: .color)
-                )
-            }
-        }
-    }
-
     // MARK: - Rink Entity
 
     private func createRinkEntity() async -> ModelEntity {
@@ -216,7 +147,7 @@ struct RealityRinkView: View {
 
         if let texture = try? await TextureResource(image: cgImage, options: .init(semantic: .color)) {
             material.color = .init(texture: .init(texture))
-            self.textureResource = texture
+            drawingUtility.textureResource = texture
         }
 
         let entity = ModelEntity(mesh: mesh, materials: [material])
@@ -239,6 +170,8 @@ struct RealityRinkView: View {
     private func syncPlayers(on rink: Entity) {
         let ids = rinkViewModel.playerIDs
         let positions = rinkViewModel.playerPositions
+        let colors = rinkViewModel.playerColors
+        let labels = rinkViewModel.playerLabels
 
         for playerID in ids {
             let playerName = "player_\(playerID)"
@@ -248,9 +181,20 @@ struct RealityRinkView: View {
                     comp.targetPosition = pos
                     existing.components.set(comp)
                 }
+                if let playerColor = colors[playerID],
+                   var modelComp = existing.components[ModelComponent.self] {
+                    #if os(macOS)
+                    let nativeColor = NSColor(playerColor)
+                    #elseif os(iOS)
+                    let nativeColor = UIColor(playerColor)
+                    #endif
+                    modelComp.materials = [SimpleMaterial(color: nativeColor, isMetallic: false)]
+                    existing.components.set(modelComp)
+                }
             } else {
                 let startPos = positions[playerID] ?? .zero
-                let newEntity = createPlayerEntity(id: playerID, startPos: startPos)
+                let label = labels[playerID]
+                let newEntity = createPlayerEntity(id: playerID, startPos: startPos, label: label)
                 newEntity.name = playerName
                 rink.addChild(newEntity)
             }
@@ -265,31 +209,33 @@ struct RealityRinkView: View {
 
     // MARK: - Player Entities
 
-    private func createPlayerEntity(id: UInt8, startPos: SIMD3<Float>) -> Entity {
-        let parent = Entity()
-        parent.position = startPos
-        parent.components.set(PlayerComponent(targetPosition: startPos, playerID: id))
-
+    private func createPlayerEntity(id: UInt8, startPos: SIMD3<Float>, label: String?) -> Entity {
         let height: Float = 0.02
+        
         let cylinder = ModelEntity(
             mesh: MeshResource.generateCylinder(height: height, radius: 0.008),
             materials: [SimpleMaterial(color: .black, isMetallic: false)]
         )
-        parent.addChild(cylinder)
+        cylinder.position = startPos
+        cylinder.components.set(PlayerComponent(targetPosition: startPos, playerID: id))
 
-        let textMesh = MeshResource.generateText(
-            "\(id)",
-            extrusionDepth: 0.001,
-            font: .systemFont(ofSize: 0.008, weight: .bold),
-            alignment: .center
-        )
-        let textEntity = ModelEntity(mesh: textMesh, materials: [SimpleMaterial(color: .white, isMetallic: false)])
-        let center = textEntity.visualBounds(relativeTo: nil).center
-        textEntity.position = SIMD3<Float>(-center.x, height / 2 + 0.001, center.y)
-        textEntity.orientation = simd_quatf(angle: -.pi / 2, axis: [1, 0, 0])
-        parent.addChild(textEntity)
+        if let label {
+            let textMesh = MeshResource.generateText(
+                label,
+                extrusionDepth: 0.001,
+                font: .systemFont(ofSize: 0.008, weight: .bold),
+                alignment: .center
+            )
+            let textEntity = ModelEntity(mesh: textMesh, materials: [SimpleMaterial(color: .white, isMetallic: false)])
+            let center = textEntity.visualBounds(relativeTo: nil).center
+            
+            textEntity.position = SIMD3<Float>(-center.x, height / 2 + 0.001, center.y)
+            textEntity.orientation = simd_quatf(angle: -.pi / 2, axis: [1, 0, 0])
+            
+            cylinder.addChild(textEntity)
+        }
 
-        return parent
+        return cylinder
     }
 
     private func emptyCGImage() -> CGImage {

@@ -34,7 +34,6 @@ actor UDPReceiver: UDPReceiverProtocol {
                 try await listener.run { connection in
                     for try await (data, _) in connection.messages {
                         let packet = UDPPacket(
-                            timestamp: Date(),
                             rawBytes: data
                         )
                         continuation.yield(packet)

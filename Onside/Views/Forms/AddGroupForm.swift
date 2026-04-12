@@ -105,15 +105,13 @@ struct AddGroupForm: View {
         .onAppear {
             if let group {
                 name = group.name
-                selectedPlayerIDs = Set(group.players.map(\.persistentModelID))
+                selectedPlayerIDs = Set((group.players ?? []).map(\.persistentModelID))
                 if let hex = group.colorHex {
                     selectedColor = Self.color(from: hex)
                 }
             }
         }
     }
-
-    // MARK: - Actions
 
     private func togglePlayer(_ player: Player) {
         let id = player.persistentModelID
@@ -141,8 +139,6 @@ struct AddGroupForm: View {
         try? modelContext.save()
     }
 
-    // MARK: - Color Helpers
-
     static let colorOptions: [Color] = [
         .red, .orange, .yellow, .green, .mint, .teal,
         .cyan, .blue, .indigo, .purple, .pink, .brown
@@ -167,10 +163,11 @@ struct AddGroupForm: View {
     }
 }
 
-// MARK: - Preview
-
 #Preview {
-    AddGroupForm()
-        .modelContainer(for: [Player.self, PlayerGroup.self])
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: Player.self, PlayerGroup.self, configurations: config)
+    
+    return AddGroupForm()
+        .modelContainer(container)
         .tint(.orange)
 }

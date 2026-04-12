@@ -9,18 +9,18 @@
 import SwiftUI
 import AppKit
 
-struct MacPencilCaptureViewWrapper: NSViewRepresentable {
+struct MouseCaptureViewWrapper: NSViewRepresentable {
     var onMove: (CGPoint, Float) -> Void
     var onLift: () -> Void
 
-    func makeNSView(context: Context) -> MacPencilCaptureView {
-        let view = MacPencilCaptureView()
+    func makeNSView(context: Context) -> MouseCaptureView {
+        let view = MouseCaptureView()
         view.onMove = onMove
         view.onLift = onLift
         return view
     }
 
-    func updateNSView(_ nsView: MacPencilCaptureView, context: Context) {
+    func updateNSView(_ nsView: MouseCaptureView, context: Context) {
         nsView.onMove = onMove
         nsView.onLift = onLift
     }

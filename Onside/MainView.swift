@@ -8,34 +8,38 @@
 import SwiftUI
 
 struct MainView: View {
-    @Environment(\.modelContext) private var modelContext
     let container: AppContainer
     @State private var rinkViewModel: RinkViewModel?
     @State private var selectedTab: AppTab = .rink
+    
+    init(container: AppContainer) {
+        self.container = container
+        _rinkViewModel = State(initialValue: container.makeRinkViewModel())
+    }
     
     var body: some View {
         Group {
             if let rinkViewModel {
                 TabView(selection: $selectedTab) {
-                    RinkView(rink: rinkViewModel, config: container.rinkConfiguration)
+                    RinkView(viewModel: rinkViewModel, config: container.rinkConfiguration)
                         .tabItem {
-                            Label("Hřiště", systemImage: "sportscourt")
+                            Label(.rink, systemImage: "sportscourt")
                         }
                         .tag(AppTab.rink)
                     
                     PlayerListView()
                         .tabItem {
-                            Label("Hráči", systemImage: "person")
+                            Label(.players, systemImage: "person")
                         }
                         .tag(AppTab.players)
                     
                     GroupListView()
                         .tabItem {
-                            Label("Skupiny", systemImage: "person.3")
+                            Label(.groups, systemImage: "person.3")
                         }
                         .tag(AppTab.groups)
                     
-                    Text("Nastavení")
+                    SettingsView()
                         .tabItem {
                             Label("Nastavení", systemImage: "gearshape")
                         }
@@ -43,11 +47,7 @@ struct MainView: View {
                 }
                 .tabViewStyle(.sidebarAdaptable)
                 .focusedSceneValue(\.selectedTab, $selectedTab)
-            }
-        }
-        .onAppear {
-            if rinkViewModel == nil {
-                rinkViewModel = container.makeRinkViewModel(modelContext: modelContext)
+                .tint(.orange)
             }
         }
     }

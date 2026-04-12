@@ -79,4 +79,11 @@ actor SessionStorage: SessionStorageProtocol {
         return result
     }
 
+    public func getExportData() async -> SessionData {
+        // Projdeme všechny tracky a vytvoříme jejich SerializedTrack verzi
+        let serializedTracks = playerTracks.map { $0.snapshot() }
+        
+        // Vrátíme zabalené v SessionData
+        return SessionData(tracks: serializedTracks)
+    }
 }

@@ -7,17 +7,15 @@
 
 import SwiftUI
 
-struct CanvasView: View {
+struct InputCaptureView: View {
     var onMove: (CGPoint, Float) -> Void
     var onLift: () -> Void
     
     var body: some View {
         #if os(iOS)
-        PencilCaptureViewWrapper(onMove: onMove, onLift: onLift)
+        TouchCaptureViewWrapper(onMove: onMove, onLift: onLift)
         #elseif os(macOS)
-        MacPencilCaptureViewWrapper(onMove: onMove, onLift: onLift)
-        #elseif(os(tvOS))
-            EmptyView()
+        MouseCaptureViewWrapper(onMove: onMove, onLift: onLift)
         #endif
     }
 }

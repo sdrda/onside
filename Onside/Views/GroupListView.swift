@@ -39,14 +39,12 @@ struct GroupListView: View {
             }
             .navigationTitle("Skupiny")
             .toolbar {
-                // Tlačítko pro přidání (funguje všude)
                 ToolbarItem(placement: .primaryAction) {
                     Button(action: { showAddSheet = true }) {
                         Image(systemName: "plus")
                     }
                 }
                 
-                // Tlačítko pro úpravy (pouze pro iOS)
                 #if os(iOS)
                 ToolbarItem(placement: .topBarLeading) {
                     EditButton()
@@ -71,8 +69,6 @@ struct GroupListView: View {
     }
 }
 
-// MARK: - Group Row
-
 private struct GroupRowView: View {
     let group: PlayerGroup
 
@@ -82,7 +78,7 @@ private struct GroupRowView: View {
                 .fill(color(from: group.colorHex))
                 .frame(width: 44, height: 44)
                 .overlay {
-                    Text("\(group.players.count)")
+                    Text("\(group.players?.count ?? 0)")
                         .font(.headline)
                         .foregroundStyle(.white)
                 }
@@ -92,12 +88,12 @@ private struct GroupRowView: View {
                     .font(.body)
                     .fontWeight(.medium)
 
-                if group.players.isEmpty {
+                if (group.players ?? []).isEmpty {
                     Text("Žádní hráči")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
-                    Text(group.players.map(\.name).joined(separator: ", "))
+                    Text((group.players ?? []).map(\.name).joined(separator: ", "))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -121,10 +117,11 @@ private struct GroupRowView: View {
     }
 }
 
-// MARK: - Preview
-
 #Preview {
-    GroupListView()
-        .modelContainer(for: [Player.self, PlayerGroup.self])
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: Player.self, PlayerGroup.self, configurations: config)
+    
+    return GroupListView()
+        .modelContainer(container)
         .tint(.orange)
 }

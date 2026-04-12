@@ -9,12 +9,12 @@
 
 import UIKit
 
-class PencilCaptureView: UIView {
+class TouchCaptureView: UIView {
     var onMove: ((CGPoint, Float) -> Void)?
     var onLift: (() -> Void)?
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let touch = touches.first, touch.type == .pencil else { return }
+        guard let touch = touches.first else { return }
         onMove?(touch.location(in: self), Float(touch.force))
     }
 
@@ -26,5 +26,6 @@ class PencilCaptureView: UIView {
         onLift?()
     }
 }
+
 
 #endif

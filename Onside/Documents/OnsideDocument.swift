@@ -14,22 +14,30 @@ extension UTType {
     }
 }
 
+// Samotný dokument pro export/import
 struct OnsideDocument: FileDocument {
     static var readableContentTypes: [UTType] { [.onside] }
-
-    var tracks: [SerializedTrack]
-
-    init(tracks: [SerializedTrack]) {
-        self.tracks = tracks
+    
+    var session: SessionData
+    
+    // Inicializátor, když vytváříme nový soubor pro uložení
+    init(session: SessionData) {
+        self.session = session
     }
-
+    
+    // Inicializátor pro načtení z existujícího souboru (import)
     init(configuration: ReadConfiguration) throws {
-        let data = configuration.file.regularFileContents ?? Data()
-        tracks = try JSONDecoder().decode([SerializedTrack].self, from: data)
+        guard let data = configuration.file.regularFileContents else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        self.session = try JSONDecoder().decode(SessionData.self, from: data)
     }
-
+    
+    // Jednoduchá metoda, která zabalí tvoji strukturu do JSONu pro uložení
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-        let data = try JSONEncoder().encode(tracks)
+        let encoder = JSONEncoder()
+        // encoder.outputFormatting = .prettyPrinted // Odkomentuj, pokud chceš JSON čitelný pro lidi
+        let data = try encoder.encode(session)
         return FileWrapper(regularFileWithContents: data)
     }
 }

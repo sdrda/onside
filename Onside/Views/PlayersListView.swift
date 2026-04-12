@@ -14,6 +14,16 @@ struct PlayerListView: View {
 
     @State private var showAddSheet = false
     @State private var playerToEdit: Player? = nil
+    
+    @State private var searchText: String = ""
+    
+    var filteredPlayers: [Player] {
+        if searchText.isEmpty {
+            return players
+        } else {
+            return players.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -26,7 +36,7 @@ struct PlayerListView: View {
                     )
                 } else {
                     List {
-                        ForEach(players) { player in
+                        ForEach(filteredPlayers) { player in
                             PlayerRowView(player: player)
                                 .contentShape(Rectangle())
                                 .onTapGesture {
@@ -35,29 +45,29 @@ struct PlayerListView: View {
                         }
                         .onDelete(perform: deletePlayers)
                     }
+                    .searchable(text: $searchText)
                 }
             }
-            
             .navigationTitle("Hráči")
             
             
             .toolbar {
-                            ToolbarItem(placement: .primaryAction) {
-                                Button {
-                                    showAddSheet = true
-                                } label: {
-                                    Image(systemName: "plus")
-                                }
-                            }
-                            
-                            #if os(iOS)
-                            if !players.isEmpty {
-                                ToolbarItem(placement: .topBarLeading) {
-                                    EditButton()
-                                }
-                            }
-                            #endif
-                        }
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showAddSheet = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                }
+                
+                #if os(iOS)
+                if !players.isEmpty {
+                    ToolbarItem(placement: .topBarLeading) {
+                        EditButton()
+                    }
+                }
+                #endif
+            }
         }
         // Přidat nového hráče
         .sheet(isPresented: $showAddSheet) {
@@ -85,31 +95,6 @@ private struct PlayerRowView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // Profilová fotka nebo fallback ikona
-            Group {
-                if let url = player.photoUrl {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .scaledToFill()
-                        default:
-                            Image(systemName: "person.circle.fill")
-                                .resizable()
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                } else {
-                    Image(systemName: "person.circle.fill")
-                        .resizable()
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .frame(width: 44, height: 44)
-            .clipShape(Circle())
-            .overlay(Circle().stroke(.separator, lineWidth: 0.5))
-
             VStack(alignment: .leading, spacing: 2) {
                 Text(player.name.isEmpty ? "Bez jména" : player.name)
                     .font(.body)
@@ -130,8 +115,6 @@ private struct PlayerRowView: View {
         .padding(.vertical, 4)
     }
 }
-
-// MARK: - Preview
 
 #Preview {
     PlayerListView()

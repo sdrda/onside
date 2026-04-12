@@ -18,19 +18,26 @@ final class RinkViewModel {
     
     private(set) var isRecording: Bool = false
     private(set) var recordedPositionCounts: [UInt8: Int] = [:]
-
-    /// Popisek na válci — číslo dresu pokud hráč existuje v DB
-    var playerLabels: [UInt8: String] = [:]
+    
     /// ID aktivních skupin
     var activeGroupIDs: Set<PersistentIdentifier> = []
     
+    var playerColors: [UInt8: Color] = [:]
+    
+    /// Popisky hráčů (sensorId -> číslo dresu). Hráči bez záznamu v DB nemají záznam.
+    var playerLabels: [UInt8: String] = [:]
+    
+    var playerSpeed: [UInt8: Float] = [:]
+    
     let playback: PlaybackController
      
-    @ObservationIgnored private let modelContext: ModelContext
+    @ObservationIgnored private let playerGroupRepository: any PlayerGroupRepositoryProtocol
+    @ObservationIgnored private let playerRepository: any PlayerRepositoryProtocol
     @ObservationIgnored private let dataProcessor: any DataProcessorProtocol
     @ObservationIgnored private let sessionStorage: any SessionStorageProtocol
     
     @ObservationIgnored private var listeningTask: Task<Void, Never>? = nil
+    @ObservationIgnored private var previousPositions: [UInt8: PlayerPosition] = [:]
     
     private let positionScale: Float = 0.01
     
@@ -38,8 +45,9 @@ final class RinkViewModel {
         playerIDs.count
     }
     
-    init(modelContext: ModelContext, dataProcessor: any DataProcessorProtocol, sessionStorage: any SessionStorageProtocol) {
-        self.modelContext = modelContext
+    init(playerGroupRepository: any PlayerGroupRepositoryProtocol, playerReopsitory: any PlayerRepositoryProtocol, dataProcessor: any DataProcessorProtocol, sessionStorage: any SessionStorageProtocol) {
+        self.playerGroupRepository = playerGroupRepository
+        self.playerRepository = playerReopsitory
         self.dataProcessor = dataProcessor
         self.sessionStorage = sessionStorage
         self.playback = PlaybackController(sessionStorage: sessionStorage)
@@ -67,10 +75,8 @@ final class RinkViewModel {
     }
     
     // MARK: - Groups
-    
     func fetchGroups() -> [PlayerGroup] {
-        let descriptor = FetchDescriptor<PlayerGroup>(sortBy: [SortDescriptor(\.name)])
-        return (try? modelContext.fetch(descriptor)) ?? []
+        (try? playerGroupRepository.fetchGroups()) ?? []
     }
     
     func toggleGroup(_ group: PlayerGroup) {
@@ -79,13 +85,71 @@ final class RinkViewModel {
         } else {
             activeGroupIDs.insert(group.persistentModelID)
         }
+        rebuildPlayerColors()
     }
     
     func isGroupActive(_ group: PlayerGroup) -> Bool {
         activeGroupIDs.contains(group.persistentModelID)
     }
     
+    /// Přepočítá barvy hráčů podle aktivních skupin
+    private func rebuildPlayerColors() {
+        var newColors: [UInt8: Color] = [:]
+        
+        let groups = (try? playerGroupRepository.fetchGroups()) ?? []
+        
+        for group in groups {
+            guard activeGroupIDs.contains(group.persistentModelID) else { continue }
+            let color = color(from: group.colorHex)
+            for player in group.players ?? [] {
+                newColors[UInt8(player.sensorId)] = color
+            }
+        }
+        
+        playerColors = newColors
+    }
+    
+    /// Přepočítá popisky hráčů z DB (sensorId -> jerseyNumber)
+    func rebuildPlayerLabels() {
+        let descriptor = FetchDescriptor<Player>()
+        
+        guard let players = try? playerRepository.fetchPlayers() else {
+            return
+        }
+        
+        var labels: [UInt8: String] = [:]
+        for player in players {
+            labels[UInt8(player.sensorId)] = "\(player.jerseyNumber)"
+        }
+        playerLabels = labels
+    }
+    
+    private func color(from hex: String?) -> Color {
+        guard let hex, !hex.isEmpty else { return .orange }
+        var rgb: UInt64 = 0
+        Scanner(string: hex.replacingOccurrences(of: "#", with: "")).scanHexInt64(&rgb)
+        return Color(
+            red: Double((rgb >> 16) & 0xFF) / 255,
+            green: Double((rgb >> 8) & 0xFF) / 255,
+            blue: Double(rgb & 0xFF) / 255
+        )
+    }
+    
     // MARK: - Private
+    
+    /// Vypočítá rychlost hráče v m/s z aktuální a předchozí pozice.
+    private func updateSpeed(for position: PlayerPosition) {
+        if let previous = previousPositions[position.id] {
+            let dt = position.timestamp.timeIntervalSince(previous.timestamp)
+            if dt > 0 {
+                let dx = Float(position.x - previous.x)
+                let dy = Float(position.y - previous.y)
+                let distance = sqrt(dx * dx + dy * dy)
+                playerSpeed[position.id] = distance / Float(dt)
+            }
+        }
+        previousPositions[position.id] = position
+    }
     
     private func setupPlaybackCallback() {
         playback.onPositionsChanged = { [weak self] positions in
@@ -95,9 +159,13 @@ final class RinkViewModel {
             for (id, pos) in positions {
                 newPositions[id] = pos.scaledPosition(scale: self.positionScale)
                 ids.insert(id)
+                self.updateSpeed(for: pos)
             }
             self.playerPositions = newPositions
-            self.playerIDs = ids
+            if ids != self.playerIDs {
+                self.playerIDs = ids
+                self.rebuildPlayerLabels()
+            }
         }
     }
     
@@ -115,10 +183,19 @@ final class RinkViewModel {
                 guard !self.playback.isActive else { continue }
                 
                 self.playerPositions[position.id] = position.scaledPosition(scale: self.positionScale)
+                self.updateSpeed(for: position)
                 
-                self.playerIDs.insert(position.id)
+                let isNew = self.playerIDs.insert(position.id).inserted
+                if isNew {
+                    self.rebuildPlayerLabels()
+                }
             }
         }
+    }
+    
+    
+    func getDataForExport() async -> SessionData {
+        await sessionStorage.getExportData()
     }
     
     // Při zániku zavřeme asynchronní úkol

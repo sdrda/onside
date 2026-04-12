@@ -8,7 +8,7 @@
 #if os(macOS)
 import AppKit
 
-class MacPencilCaptureView: NSView {
+class MouseCaptureView: NSView {
     var onMove: ((CGPoint, Float) -> Void)?
     var onLift: (() -> Void)?
 

@@ -9,18 +9,18 @@
 
 import SwiftUI
 
-struct PencilCaptureViewWrapper: UIViewRepresentable {
+struct TouchCaptureViewWrapper: UIViewRepresentable {
     var onMove: (CGPoint, Float) -> Void
     var onLift: () -> Void
 
-    func makeUIView(context: Context) -> PencilCaptureView {
-        let view = PencilCaptureView()
+    func makeUIView(context: Context) -> TouchCaptureView {
+        let view = TouchCaptureView()
         view.onMove = onMove
         view.onLift = onLift
         return view
     }
 
-    func updateUIView(_ uiView: PencilCaptureView, context: Context) {
+    func updateUIView(_ uiView: TouchCaptureView, context: Context) {
         uiView.onMove = onMove
         uiView.onLift = onLift
     }

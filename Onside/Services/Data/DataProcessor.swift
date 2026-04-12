@@ -1,23 +1,19 @@
-//
-//  DataProcessor.swift
-//  Onside
-//
-//  Created by Šimon Drda on 16.03.2026.
-//
-
 import Foundation
+import os
 
 actor DataProcessor: DataProcessorProtocol {
     private let sessionStorage: any SessionStorageProtocol
     private let receiver: any UDPReceiverProtocol
     private var listenTask: Task<Void, Never>?
-    private let positionScale: Float = 0.01
     private var positionContinuation: AsyncStream<PlayerPosition>.Continuation?
+    
+    private let logger = Logger(subsystem: "Onside", category: "DataProcessor")
+    var onNetworkError: ((Error) -> Void)?
     
     /// Stream pozic pro odběratele (např. RinkViewModel)
     nonisolated let positions: AsyncStream<PlayerPosition>
     
-    init(receiver: any UDPReceiverProtocol = UDPReceiver(port: 9001), sessionStorage: any SessionStorageProtocol = SessionStorage()) {
+    init(receiver: any UDPReceiverProtocol = UDPReceiver(port: 9001), sessionStorage: any SessionStorageProtocol) {
         self.receiver = receiver
         self.sessionStorage = sessionStorage
         
@@ -40,8 +36,11 @@ actor DataProcessor: DataProcessorProtocol {
                     }
                 }
             } catch is CancellationError {
+                logger.debug("Naslouchání bylo zrušeno.")
             } catch {
-                print("[connect] Listener selhal: \(error)")
+                logger.error("Listener selhal: \(error.localizedDescription)")
+                self.listenTask = nil
+                self.onNetworkError?(error)
             }
         }
     }
@@ -54,12 +53,20 @@ actor DataProcessor: DataProcessorProtocol {
     
     private func transformToPlayerPosition(packet: UDPPacket) -> PlayerPosition? {
         let data = packet.rawBytes
-        guard data.count >= 17 else { return nil }
+        
+        guard data.count >= 32 else { return nil }
 
-        let x = data.withUnsafeBytes { $0.load(fromByteOffset: 0, as: Double.self) }
-        let y = data.withUnsafeBytes { $0.load(fromByteOffset: 8, as: Double.self) }
-        let playerId: UInt8 = data.withUnsafeBytes { $0.load(fromByteOffset: 16, as: UInt8.self) }
+        return data.withUnsafeBytes { buffer in
+            let x = buffer.load(fromByteOffset: 0, as: Double.self)
+            let y = buffer.load(fromByteOffset: 8, as: Double.self)
+            
+            let playerId = buffer.load(fromByteOffset: 16, as: UInt8.self)
+        
+            let timestampDouble = buffer.load(fromByteOffset: 24, as: Double.self)
 
-        return PlayerPosition(id: playerId, x: CGFloat(x), y: CGFloat(y), timestamp: packet.timestamp)
+            let timestampDate = Date(timeIntervalSince1970: timestampDouble)
+
+            return PlayerPosition(id: playerId, x: CGFloat(x), y: CGFloat(y), timestamp: timestampDate)
+        }
     }
 }

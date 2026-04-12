@@ -8,6 +8,5 @@
 import Foundation
 
 struct UDPPacket: Sendable {
-    let timestamp: Date
     let rawBytes: Data
 }

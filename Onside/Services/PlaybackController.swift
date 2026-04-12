@@ -37,7 +37,7 @@ final class PlaybackController {
     @ObservationIgnored
     private var playbackTask: Task<Void, Never>?
     
-    /// Callback volaný při každé změně pozice (seek / tick)
+    /// Callback volaný při každé změně pozice (seek / tick) - pro update RealityKit
     var onPositionsChanged: (([UInt8: PlayerPosition]) -> Void)?
     
     init(sessionStorage: any PositionStore) {

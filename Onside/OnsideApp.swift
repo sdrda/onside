@@ -15,12 +15,14 @@ struct OnsideApp: App {
     var body: some Scene {
         WindowGroup {
             MainView(container: container)
-                .modelContainer(for: [Player.self, PlayerGroup.self])
+                .modelContainer(container.modelContainer)
         }
+        #if !os(tvOS)
         .commands {
             TabCommands()
             DrawingCommands()
         }
+        #endif
     }
 }
 

@@ -10,12 +10,13 @@ import Foundation
 
 @Model
 class PlayerGroup {
-    var name: String
+    var id = UUID()
+    var name: String = ""
     var colorHex: String?
 
     @Relationship
-    var players: [Player] = []
-
+    var players: [Player]?
+    
     init(name: String, colorHex: String? = nil) {
         self.name = name
         self.colorHex = colorHex

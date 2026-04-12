@@ -5,6 +5,7 @@
 //  Created by Šimon Drda on 10.04.2026.
 //
 
+#if !os(tvOS)
 import SwiftUI
 
 struct DrawingCommands: Commands {
@@ -20,3 +21,5 @@ struct DrawingCommands: Commands {
         }
     }
 }
+
+#endif

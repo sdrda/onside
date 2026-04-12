@@ -13,4 +13,5 @@ protocol PositionStore: Actor {
     func heatmapPoints(for playerID: UInt8) -> [(x: CGFloat, y: CGFloat)]
     func timeRange() -> ClosedRange<Date>?
     func positions(at timestamp: Date) -> [UInt8: PlayerPosition]
+    func getExportData() async -> SessionData
 }

@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+#if !os(tvOS)
 struct TabCommands: Commands {
     @FocusedBinding(\.selectedTab) var selectedTab: AppTab?
     
@@ -34,3 +35,4 @@ struct TabCommands: Commands {
         }
     }
 }
+#endif

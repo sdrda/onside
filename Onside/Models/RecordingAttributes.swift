@@ -5,10 +5,10 @@
 //  Created by Šimon Drda on 29.03.2026.
 //
 
+#if os(iOS)
 import ActivityKit
 import Foundation
 
-#if os(iOS)
 struct RecordingAttributes: ActivityAttributes {
     struct ContentState: Codable, Hashable {
         var playerCount: Int
